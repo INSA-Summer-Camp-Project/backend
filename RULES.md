@@ -37,7 +37,8 @@ git checkout -b feat/your-feature-name
 
 ### **Step 2: Build the Feature**
 
-- Write clean, modular code following the project guidelines in `.agents/AGENTS.md`.
+- Write clean, modular code following the project guidelines in `.agents/AGENTS.md` and `DEVELOPMENT.md`.
+- **Decoupling Rule**: Features and modules must be loosely coupled. Do NOT tightly couple unrelated domain modules or create circular dependencies.
 - **Environment Variables**: Never access `process.env` directly. Always import `env` from `@/config/env`.
 - **Layering**: Follow strict layer separation: **Routes** (`src/routes`) → **Controllers** (`src/controllers`) → **Services** (`src/services`) → **Prisma ORM**.
 - **Response Format**: Return standard JSON responses (`{ "success": true, "data": ... }` or `{ "success": false, "error": "..." }`).
@@ -81,6 +82,7 @@ pnpm test
 | ❌ **DONT'S**                                                                 | ✅ **DO'S**                                                                  |
 | :---------------------------------------------------------------------------- | :--------------------------------------------------------------------------- |
 | **Don't** push directly to `main` or `dev`.                                   | **Do** push to a feature branch and open a PR to `dev`.                      |
+| **Don't** tightly couple features or create circular module dependencies.     | **Do** keep modules loosely coupled and maintain clean layer isolation.      |
 | **Don't** use `process.env["KEY"] ?? ""` fallback defaults scattered in code. | **Do** declare environment variables in `src/config/env.ts` with Zod schema. |
 | **Don't** use `any` or bypass TypeScript errors with `// @ts-ignore`.         | **Do** write strict, explicit TypeScript interfaces in `src/types/`.         |
 | **Don't** skip writing unit tests for new endpoints or business logic.        | **Do** add tests in `tests/` verifying success and failure scenarios.        |
