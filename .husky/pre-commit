@@ -1,0 +1,21 @@
+#!/bin/sh
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+pattern="^((feature|feat|bugfix|fix|hotfix|chore|refactor|test|docs|ci)\/[a-zA-Z0-9._-]+|main|master|dev)$"
+
+if echo "$branch" | grep -E "$pattern" > /dev/null 2>&1; then
+  :
+else
+  echo "[Error] Invalid branch name: '$branch'"
+  echo "Branch names must follow one of these conventions:"
+  echo "  - feature/* or feat/*"
+  echo "  - bugfix/* or fix/*"
+  echo "  - hotfix/*"
+  echo "  - chore/*"
+  echo "  - refactor/*"
+  echo "  - test/*"
+  echo "  - main / master / dev"
+  exit 1
+fi
+
+pnpm exec lint-staged
