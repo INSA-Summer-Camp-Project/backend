@@ -18,4 +18,5 @@ else
   exit 1
 fi
 
+echo "🎨 Formatting staged files & running lint-staged checks..."
 pnpm exec lint-staged
