@@ -1,0 +1,53 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  ci:
+    name: Build, Lint & Test (Backend)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Setup pnpm Cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Environment Setup
+        run: cp .env.example .env
+
+      - name: Run Linter
+        run: pnpm lint
+
+      - name: Check Formatting
+        run: pnpm format:check
+
+      - name: Type Check
+        run: pnpm exec tsc --noEmit
+
+      - name: Run Tests
+        run: pnpm test
+
+      - name: Build Project
+        run: pnpm build
