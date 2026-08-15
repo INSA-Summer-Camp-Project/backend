@@ -10,7 +10,16 @@ const envSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
 
-  FRONTEND_URL: z.string(),
+  FRONTEND_URL: z.string().default("http://localhost:3000"),
+
+  JWT_SECRET: z
+    .string()
+    .default("super-secret-jwt-access-key-for-servicehub-phase1"),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .default("super-secret-jwt-refresh-key-for-servicehub-phase1"),
+  JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
+  JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 });
 
 const result = envSchema.safeParse(process.env);

@@ -1,11 +1,8 @@
-import express, {
-  type Express,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
+import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import type { ApiResponse } from "@/types";
+import authRoutes from "@/routes/auth.routes";
+import { errorHandler } from "@/middlewares/error.middleware";
 
 export const app: Express = express();
 
@@ -54,6 +51,9 @@ app.get(
   },
 );
 
+// API v1 Routes
+app.use("/api/v1/auth", authRoutes);
+
 // Helper exports preserved for existing tests
 export const getAppName = () => "ServiceHub Backend API";
 export const addNumbers = (a: number, b: number): number => a + b;
@@ -67,19 +67,6 @@ app.use((_req: Request, res: Response<ApiResponse<never>>) => {
 });
 
 // Global Error Handler Middleware
-app.use(
-  (
-    err: Error,
-    _req: Request,
-    res: Response<ApiResponse<never>>,
-    _next: NextFunction,
-  ) => {
-    console.error("❌ Express Unhandled Error:", err.message);
-    res.status(500).json({
-      success: false,
-      error: err.message || "Internal server error",
-    });
-  },
-);
+app.use(errorHandler);
 
 export default app;
