@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
- 
 import { describe, expect, it, beforeEach, vi } from "vitest";
 
 vi.mock("@/config/env", () => ({
@@ -80,7 +79,7 @@ describe("telegram-oidc-cookie", () => {
 
     const cookie = headers[0]!.split(";")[0];
 
-    const tamperedCookie = cookie!.replace("original-state", "attacker-state");
+    const tamperedCookie = cookie!.replace("=", "=tampered");
 
     const req = {
       headers: {

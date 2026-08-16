@@ -1,18 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockGenerateState = vi.fn();
-const mockGenerateNonce = vi.fn();
-const mockGeneratePkce = vi.fn();
-
-const mockCreateAuthorizationUrl = vi.fn();
-
-const mockSetTransaction = vi.fn();
-const mockGetTransaction = vi.fn();
-const mockClearTransaction = vi.fn();
-
-const mockHandleCallback = vi.fn();
-const mockLoginWithTelegram = vi.fn();
+const {
+  mockGenerateState,
+  mockGenerateNonce,
+  mockGeneratePkce,
+  mockCreateAuthorizationUrl,
+  mockSetTransaction,
+  mockGetTransaction,
+  mockClearTransaction,
+  mockHandleCallback,
+  mockLoginWithTelegram,
+} = vi.hoisted(() => ({
+  mockGenerateState: vi.fn(),
+  mockGenerateNonce: vi.fn(),
+  mockGeneratePkce: vi.fn(),
+  mockCreateAuthorizationUrl: vi.fn(),
+  mockSetTransaction: vi.fn(),
+  mockGetTransaction: vi.fn(),
+  mockClearTransaction: vi.fn(),
+  mockHandleCallback: vi.fn(),
+  mockLoginWithTelegram: vi.fn(),
+}));
 
 vi.mock("@/lib/telegram-oidc", () => ({
   generateTelegramState: mockGenerateState,

@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, beforeEach, vi } from "vitest";
 
-const mockVerify = vi.fn();
+const { mockVerify } = vi.hoisted(() => ({
+  mockVerify: vi.fn(),
+}));
 
 vi.mock("jsonwebtoken", () => ({
   default: {

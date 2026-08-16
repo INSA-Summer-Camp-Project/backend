@@ -1,9 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockBuildAuthorizationUrl = vi.fn();
-const mockAuthorizationCodeGrant = vi.fn();
-const mockGetTelegramConfiguration = vi.fn();
+const {
+  mockBuildAuthorizationUrl,
+  mockAuthorizationCodeGrant,
+  mockGetTelegramConfiguration,
+} = vi.hoisted(() => ({
+  mockBuildAuthorizationUrl: vi.fn(),
+  mockAuthorizationCodeGrant: vi.fn(),
+  mockGetTelegramConfiguration: vi.fn(),
+}));
 
 vi.mock("openid-client", () => ({
   buildAuthorizationUrl: mockBuildAuthorizationUrl,

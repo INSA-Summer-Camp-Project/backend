@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockFindUnique = vi.fn();
-const mockUserCreate = vi.fn();
-const mockCustomerCreate = vi.fn();
-const mockTransaction = vi.fn();
+const { mockFindUnique, mockUserCreate, mockCustomerCreate, mockTransaction } =
+  vi.hoisted(() => ({
+    mockFindUnique: vi.fn(),
+    mockUserCreate: vi.fn(),
+    mockCustomerCreate: vi.fn(),
+    mockTransaction: vi.fn(),
+  }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -56,6 +59,7 @@ describe("auth.service - Telegram authentication", () => {
     };
 
     mockFindUnique.mockResolvedValueOnce(null);
+    mockUserCreate.mockResolvedValueOnce(createdUser);
 
     mockTransaction.mockImplementation(async (callback) => {
       const tx = {
@@ -180,6 +184,7 @@ describe("auth.service - Telegram authentication", () => {
     };
 
     mockFindUnique.mockResolvedValueOnce(null);
+    mockUserCreate.mockResolvedValueOnce(createdUser);
 
     mockTransaction.mockImplementation(async (callback) => {
       const tx = {
