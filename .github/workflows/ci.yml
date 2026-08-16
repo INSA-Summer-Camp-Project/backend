@@ -37,6 +37,9 @@ jobs:
       - name: Environment Setup
         run: cp .env.example .env
 
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
       - name: Run Linter
         run: pnpm lint
 
