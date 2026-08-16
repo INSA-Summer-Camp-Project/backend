@@ -143,3 +143,8 @@ vite.config.ts.timestamp-*
 .vite/
 
 /src/generated/prisma
+
+#agents
+.claude
+.windsurf
+.agent
