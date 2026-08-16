@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import type { Role } from "@prisma/client";
+import { parseCookie } from "cookie";
 import { env } from "@/config/env";
 import {
   UnauthorizedError,
@@ -15,12 +16,16 @@ export const authenticate = (
 ): void => {
   try {
     const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new UnauthorizedError("Authentication token missing or malformed");
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.slice("Bearer ".length);
     }
 
-    const token = authHeader.split(" ")[1];
+    if (!token) {
+      const cookies = parseCookie(req.headers.cookie ?? "");
+      token = cookies.access_token;
+    }
 
     if (!token) {
       throw new UnauthorizedError("Authentication token missing");
@@ -28,7 +33,7 @@ export const authenticate = (
 
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
 
-    if (!decoded || !decoded.id || !decoded.role) {
+    if (!decoded?.id || !decoded.role) {
       throw new UnauthorizedError("Invalid token payload");
     }
 

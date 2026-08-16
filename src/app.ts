@@ -1,8 +1,9 @@
 import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import type { ApiResponse } from "@/types";
-import authRoutes from "@/routes/auth.routes";
+import router from "@/routes";
 import { errorHandler } from "@/middlewares/error.middleware";
+import { corsOptions } from "@/config/cors";
 
 export const app: Express = express();
 
@@ -10,22 +11,7 @@ export const app: Express = express();
 app.disable("x-powered-by");
 
 // CORS Configuration
-const allowedOrigins = "*";
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked for origin: ${origin}`));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-  }),
-);
+app.use(cors(corsOptions));
 
 // Global Middleware
 app.use(express.json());
@@ -52,7 +38,7 @@ app.get(
 );
 
 // API v1 Routes
-app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1", router);
 
 // Helper exports preserved for existing tests
 export const getAppName = () => "ServiceHub Backend API";
