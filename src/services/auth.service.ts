@@ -198,7 +198,7 @@ export const refreshAccessToken = async (
       env.JWT_REFRESH_SECRET,
     ) as JwtPayload;
 
-    if (!decoded || !decoded.id) {
+    if (!decoded?.id) {
       throw new UnauthorizedError("Invalid refresh token payload");
     }
 
@@ -249,4 +249,57 @@ export const getCurrentUser = async (
   }
 
   return user as UserPublicResponse;
+};
+
+export const loginWithTelegram = async (telegram: {
+  sub: string;
+  name?: string;
+  preferred_username?: string;
+  phone_number?: string;
+}): Promise<LoginResponse> => {
+  let user = await prisma.user.findUnique({
+    where: { telegramId: telegram.sub },
+    select: userSelect,
+  });
+
+  if (!user) {
+    user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          name: telegram.name ?? telegram.preferred_username ?? "Telegram User",
+          email: null,
+          phone: telegram.phone_number ?? null,
+          passwordHash: null,
+          telegramId: telegram.sub,
+          telegramUsername: telegram.preferred_username ?? null,
+          role: "CUSTOMER",
+          status: "ACTIVE",
+        },
+      });
+
+      await tx.customer.create({
+        data: { userId: newUser.id },
+      });
+
+      return tx.user.findUnique({
+        where: { id: newUser.id },
+        select: userSelect,
+      });
+    });
+  }
+
+  if (!user) {
+    throw new BadRequestError("Telegram account creation failed");
+  }
+
+  if (user.status !== "ACTIVE") {
+    throw new ForbiddenError(`Account is ${user.status.toLowerCase()}`);
+  }
+
+  const tokens = generateTokens(user.id, user.role);
+
+  return {
+    user: user as UserPublicResponse,
+    tokens,
+  };
 };
