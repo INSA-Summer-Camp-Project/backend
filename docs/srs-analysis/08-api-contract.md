@@ -12,16 +12,58 @@ This is the high-level specification the frontend and backend must agree upon be
 **GET /api/auth/me**
 - Auth: Required
 - Returns the current user and their active profiles.
-- Response: `{ id, name, customerProfile: { id }, workerProfile: { id } }`
+- Response: `{ id, name, lastActiveRole, customerProfile: { id }, workerProfile: { id } }`
+
+**PUT /api/auth/role**
+- Auth: Required
+- Body: `{ activeRole: "CUSTOMER" | "WORKER" }`
+- Logic: Updates `lastActiveRole` on the User table.
 
 **POST /api/profiles/worker**
 - Auth: Required
 - Purpose: Upgrades a User to a Worker.
 - Body: `{ bio, isBusiness, categoryIds: [...] }`
 
+**PUT /api/profiles/worker**
+- Auth: Required (Worker Context)
+- Purpose: Updates existing bio, baseRate, or skills.
+- Body: `{ bio, baseRate, categoryIds: [...] }`
+
+**POST /api/profiles/worker/portfolio**
+- Auth: Required (Worker Context)
+- Body: `{ title, description, imageUrl }` (Image uploaded to Cloudinary on frontend)
+- Response: `201 Created`
+
+**POST /api/profiles/worker/certificates**
+- Auth: Required (Worker Context)
+- Body: `{ title, fileUrl }` (File uploaded to Cloudinary on frontend)
+- Response: `201 Created`
+
 ---
 
-## 2. Jobs (Service Requests)
+## 2. Discovery & Shared Resources
+**GET /api/categories**
+- Auth: Optional
+- Returns: List of all Service Categories for frontend dropdowns.
+
+**GET /api/workers**
+- Auth: Optional/Required
+- Query: `?categoryId=123`
+- Returns: List of workers for Direct Hire browsing.
+
+**GET /api/workers/:id**
+- Returns: Detailed profile, portfolio items, certificates, and reviews for a worker.
+
+---
+
+## 3. Jobs (Service Requests)
+**GET /api/customer/jobs**
+- Auth: Required (Customer Context)
+- Returns: All jobs posted by this customer (Dashboard view).
+
+**GET /api/worker/jobs**
+- Auth: Required (Worker Context)
+- Returns: All active jobs assigned to this worker.
 **POST /api/jobs**
 - Auth: Required (Customer Context)
 - Body: `{ title, description, categoryId, budget }`
@@ -49,10 +91,36 @@ This is the high-level specification the frontend and backend must agree upon be
 
 ---
 
-## 4. Execution & Review
-**POST /api/jobs/:jobId/complete**
-- Auth: Required (Worker Context)
-- Marks job ready for payment/review.
+**POST /api/jobs/:jobId/status**
+- Auth: Required
+- Body: `{ status: "COMPLETED" | "CANCELLED" }`
+- Logic: Customer or Worker can mark job complete based on business rules.
+
+---
+
+## 5. Messages (Chat)
+**GET /api/jobs/:jobId/messages**
+- Auth: Required (Must be Job owner or assigned worker)
+- Returns: Array of `Message` objects. Frontend polls this every 5 seconds.
+
+**POST /api/jobs/:jobId/messages**
+- Auth: Required
+- Body: `{ content: "..." }`
+- Response: `201 Created`
+
+---
+
+## 6. Payments & Reviews
+
+**POST /api/payments/initialize**
+- Auth: Required (Customer Context)
+- Body: `{ jobId: "..." }`
+- Returns: `{ checkoutUrl: "https://checkout.chapa.co/...", txRef: "..." }`
+
+**POST /api/webhooks/chapa**
+- Auth: Chapa Signature Validation
+- Body: Chapa event payload
+- Logic: Verifies signature, finds Payment by `txRef`, updates Payment and Job status.
 
 **POST /api/jobs/:jobId/reviews**
 - Auth: Required (Customer Context)

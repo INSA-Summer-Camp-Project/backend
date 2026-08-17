@@ -10,6 +10,8 @@ Represents the authenticated human.
 - `telegramId` (String, Unique)
 - `name` (String)
 - `systemRole` (Enum: `USER`, `ADMIN`)
+- `lastActiveRole` (Enum: `CUSTOMER`, `WORKER`, Nullable) - Remembers their last dashboard context.
+- `createdAt`, `updatedAt` (DateTime)
 
 ### 2. CustomerProfile
 - `id` (UUID, PK)
@@ -25,11 +27,14 @@ Merges "Individual" and "Business" to save time.
 - `bio`, `experience` (String)
 - `baseRate` (Decimal, Optional)
 - `averageRating` (Float, Default: 0)
+- `profilePhoto` (String, Optional) - Cloudinary URL
+- `createdAt`, `updatedAt` (DateTime)
 
 ### 4. ServiceCategory
 Managed by Admin.
 - `id` (UUID, PK)
 - `name` (String) - e.g., "Plumbing", "Electrical"
+- `createdAt`, `updatedAt` (DateTime)
 
 ### 5. WorkerService (Join Table)
 Links workers to the categories they operate in.
@@ -45,6 +50,7 @@ Created by Customer.
 - `budget` (Decimal)
 - `status` (Enum: `OPEN`, `ASSIGNED`, `COMPLETED`, `CANCELLED`)
 - `assignedWorkerId` (UUID, Nullable, FK -> WorkerProfile)
+- `createdAt`, `updatedAt` (DateTime)
 
 ### 7. Application (Bid)
 Created by Worker in response to a Job.
@@ -54,15 +60,19 @@ Created by Worker in response to a Job.
 - `proposedPrice` (Decimal)
 - `estimatedTime` (String)
 - `status` (Enum: `PENDING`, `ACCEPTED`, `REJECTED`)
+- `createdAt`, `updatedAt` (DateTime)
 
 ### 8. Payment
 Records transactions (Chapa/Cash).
 - `id` (UUID, PK)
 - `jobId` (UUID, FK -> Job)
 - `amount` (Decimal)
+- `currency` (String, Default: "ETB")
 - `method` (Enum: `CASH`, `CHAPA`)
 - `status` (Enum: `PENDING`, `PAID`, `FAILED`)
+- `txRef` (String, Unique) - Essential for Chapa Webhooks.
 - `platformCommission` (Decimal)
+- `createdAt`, `updatedAt` (DateTime)
 
 ### 9. Review
 Created by Customer after completion.
@@ -72,3 +82,28 @@ Created by Customer after completion.
 - `customerId` (UUID, FK -> CustomerProfile)
 - `rating` (Int 1-5)
 - `comment` (String)
+- `createdAt`, `updatedAt` (DateTime)
+
+### 10. PortfolioItem
+Added per SRS 11.7.
+- `id` (UUID, PK)
+- `workerId` (UUID, FK -> WorkerProfile)
+- `title`, `description` (String)
+- `imageUrl` (String) - Cloudinary URL
+- `createdAt`, `updatedAt` (DateTime)
+
+### 11. Certificate
+Added per SRS 11.8.
+- `id` (UUID, PK)
+- `workerId` (UUID, FK -> WorkerProfile)
+- `title` (String)
+- `fileUrl` (String) - Cloudinary URL
+- `createdAt`, `updatedAt` (DateTime)
+
+### 12. Message
+Added for simplified polling-based chat (FR-036).
+- `id` (UUID, PK)
+- `jobId` (UUID, FK -> Job)
+- `senderId` (UUID, FK -> User)
+- `content` (String)
+- `createdAt` (DateTime)
