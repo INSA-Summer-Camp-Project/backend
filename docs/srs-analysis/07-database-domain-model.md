@@ -27,7 +27,8 @@ Merges "Individual" and "Business" to save time.
 - `bio`, `experience` (String)
 - `baseRate` (Decimal, Optional)
 - `averageRating` (Float, Default: 0)
-- `profilePhoto` (String, Optional) - Cloudinary URL
+- `profileImageUrl` (String, Optional) - Cloudinary URL
+- `profileImagePublicId` (String, Optional) - Cloudinary Public ID
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 4. ServiceCategory
@@ -90,6 +91,7 @@ Added per SRS 11.7.
 - `workerId` (UUID, FK -> WorkerProfile)
 - `title`, `description` (String)
 - `imageUrl` (String) - Cloudinary URL
+- `imagePublicId` (String) - Cloudinary Public ID
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 11. Certificate
@@ -98,12 +100,6 @@ Added per SRS 11.8.
 - `workerId` (UUID, FK -> WorkerProfile)
 - `title` (String)
 - `fileUrl` (String) - Cloudinary URL
+- `filePublicId` (String) - Cloudinary Public ID
 - `createdAt`, `updatedAt` (DateTime)
 
-### 12. Message
-Added for simplified polling-based chat (FR-036).
-- `id` (UUID, PK)
-- `jobId` (UUID, FK -> Job)
-- `senderId` (UUID, FK -> User)
-- `content` (String)
-- `createdAt` (DateTime)

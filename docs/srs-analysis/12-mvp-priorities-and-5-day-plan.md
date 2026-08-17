@@ -26,7 +26,7 @@ With only 5 days, ruthless prioritization is required.
 
 ### Day 4: Execution & Chapa (P0/P1)
 - **Backend:** Chapa integration (Initialize + Webhook). Ratings logic.
-- **Frontend:** Payment checkout button. Rating form. Simple message thread UI (not realtime websockets, just fetch messages on mount).
+- **Frontend:** Payment checkout button. Rating form.
 - **Checkpoint:** Customer can pay and rate. Job moves to `COMPLETED`.
 
 ### Day 5: Polish & Edge Cases

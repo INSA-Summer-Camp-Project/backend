@@ -29,14 +29,18 @@ This is the high-level specification the frontend and backend must agree upon be
 - Purpose: Updates existing bio, baseRate, or skills.
 - Body: `{ bio, baseRate, categoryIds: [...] }`
 
+**GET /api/upload/signature**
+- Auth: Required
+- Returns: `{ signature, timestamp, apiKey, cloudName }` for frontend direct-upload.
+
 **POST /api/profiles/worker/portfolio**
 - Auth: Required (Worker Context)
-- Body: `{ title, description, imageUrl }` (Image uploaded to Cloudinary on frontend)
+- Body: `{ title, description, imageUrl, imagePublicId }` (After frontend direct-upload)
 - Response: `201 Created`
 
 **POST /api/profiles/worker/certificates**
 - Auth: Required (Worker Context)
-- Body: `{ title, fileUrl }` (File uploaded to Cloudinary on frontend)
+- Body: `{ title, fileUrl, filePublicId }` (After frontend direct-upload)
 - Response: `201 Created`
 
 ---
@@ -98,19 +102,7 @@ This is the high-level specification the frontend and backend must agree upon be
 
 ---
 
-## 5. Messages (Chat)
-**GET /api/jobs/:jobId/messages**
-- Auth: Required (Must be Job owner or assigned worker)
-- Returns: Array of `Message` objects. Frontend polls this every 5 seconds.
-
-**POST /api/jobs/:jobId/messages**
-- Auth: Required
-- Body: `{ content: "..." }`
-- Response: `201 Created`
-
----
-
-## 6. Payments & Reviews
+## 5. Payments & Reviews
 
 **POST /api/payments/initialize**
 - Auth: Required (Customer Context)

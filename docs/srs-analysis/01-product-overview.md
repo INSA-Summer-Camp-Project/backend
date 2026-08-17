@@ -42,4 +42,4 @@ To prove the product works in 5 days, the absolute essential journey we must bui
 - **GPS / Location matching** (Explicitly excluded per Section 22.1).
 - **Advanced Verification badges** (Section 22.5).
 - **Multi-language support** (English only per Section 22.2).
-- **Complex real-time Chat** (FR-036 requires chat, but WebSockets in 5 days is a massive risk. Scope down to simple message threads or off-platform Telegram links).
+- **Chat** (FR-036 requires chat, but we are completely removing this for the MVP to save time. Users will share Telegram handles instead).

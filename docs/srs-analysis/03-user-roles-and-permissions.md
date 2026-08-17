@@ -27,7 +27,6 @@ This matrix defines exact capabilities based on the SRS. It distinguishes betwee
 | **Direct Hiring** | | | | | |
 | Hire Worker Directly | ❌ | ✓ | ❌ | ❌ | FR-025 |
 | **Execution & Payment** | | | | | |
-| Chat with Match | ❌ | ✓ | ✓ | ❌ | FR-035 |
 | Initiate Payment | ❌ | ✓ | ❌ | ❌ | FR-038 |
 | Receive Payment Info | ❌ | ❌ | ✓ | ✓ | FR-039 |
 | Submit Review/Rating | ❌ | ✓ | ❌ | ❌ | FR-042, FR-043 |

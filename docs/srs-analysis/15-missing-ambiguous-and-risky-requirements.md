@@ -11,8 +11,6 @@ After analyzing the SRS, here are the critical gaps that the team must make exec
   *Recommendation for MVP:* Customer pays the full amount to ServiceHub's Chapa account. The platform holds it. For the demo, just show "Worker Earnings" on the dashboard. Do not attempt to build automated bank payouts to workers in 5 days.
 
 ## 3. High Technical Risks (5-Day Scope)
-- **Chat System (FR-036):** True real-time chat requires WebSockets (Socket.io), persistent connections, and complex state management. This is a massive risk for a 5-day hackathon.
-  *Recommendation for MVP:* Build a simple "Messages" table. The UI just renders a list of messages. The user has to refresh the page to see new messages. Do not use WebSockets.
 
 
 ## 4. Contradictions
