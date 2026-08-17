@@ -1,13 +1,13 @@
 import jwt from "jsonwebtoken";
-import type { SystemRole } from "@prisma/client";
+import type { SystemRole, ActiveRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/config/env";
 import { BadRequestError, NotFoundError } from "@/middlewares/error.middleware";
 import type {
-  UserPublicResponse,
-  AuthTokens,
-  LoginResponse,
-} from "@/types/auth";
+  UserPublicDto,
+  AuthTokensDto,
+  LoginResponseDto,
+} from "@/dtos/auth.dto";
 
 const userSelect = {
   id: true,
@@ -38,7 +38,7 @@ type JwtExpiresIn = NonNullable<jwt.SignOptions["expiresIn"]>;
 export const generateTokens = (
   userId: string,
   role: SystemRole,
-): AuthTokens => {
+): AuthTokensDto => {
   const accessOptions: jwt.SignOptions = {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as JwtExpiresIn,
   };
@@ -54,7 +54,7 @@ export const generateTokens = (
 
 export const getCurrentUser = async (
   userId: string,
-): Promise<UserPublicResponse> => {
+): Promise<UserPublicDto> => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: userSelect,
@@ -64,13 +64,13 @@ export const getCurrentUser = async (
     throw new NotFoundError("User not found");
   }
 
-  return user as UserPublicResponse;
+  return user as UserPublicDto;
 };
 
 export const updateActiveRole = async (
   userId: string,
   activeRole: ActiveRole,
-): Promise<UserPublicResponse> => {
+): Promise<UserPublicDto> => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -95,14 +95,15 @@ export const updateActiveRole = async (
     select: userSelect,
   });
 
-  return updatedUser as UserPublicResponse;
+  return updatedUser as UserPublicDto;
 };
 
 export const loginWithTelegram = async (telegram: {
   sub: string;
   name?: string;
   preferred_username?: string;
-}): Promise<LoginResponse> => {
+  avatarUrl?: string;
+}): Promise<LoginResponseDto> => {
   let user = await prisma.user.findUnique({
     where: { telegramId: telegram.sub },
     select: userSelect,
@@ -136,7 +137,7 @@ export const loginWithTelegram = async (telegram: {
   const tokens = generateTokens(user.id, user.systemRole);
 
   return {
-    user: user as UserPublicResponse,
+    user: user as UserPublicDto,
     tokens,
   };
 };
