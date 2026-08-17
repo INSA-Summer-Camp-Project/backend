@@ -20,6 +20,16 @@ const envSchema = z.object({
     .default("super-secret-jwt-refresh-key-for-servicehub-phase1"),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
+
+  TELEGRAM_CLIENT_ID: z.string().min(1, "TELEGRAM_CLIENT_ID is required"),
+  TELEGRAM_CLIENT_SECRET: z
+    .string()
+    .min(1, "TELEGRAM_CLIENT_SECRET is required"),
+  TELEGRAM_REDIRECT_URI: z.string().min(1, "TELEGRAM_REDIRECT_URI is required"),
+  TELEGRAM_BOT_TOKEN: z.string().min(1, "TELEGRAM_BOT_TOKEN is required"),
+  TELEGRAM_OIDC_COOKIE_SECRET: z
+    .string()
+    .min(32, "TELEGRAM_OIDC_COOKIE_SECRET is required"),
 });
 
 const result = envSchema.safeParse(process.env);

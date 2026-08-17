@@ -20,3 +20,9 @@
   - Success: `{ "success": true, "data": ... }`
   - Error: `{ "success": false, "error": "Error message" }`
 - Catch and format all async controller errors through global middleware.
+
+## 4. Git & Branch Management (Backup Project)
+
+- **The `backup/mvp-reference` Branch**: Treat `backup/mvp-reference` as the `main` branch for the backup project. **Do NOT** commit feature work directly to it.
+- **Branch Naming Strategy**: All feature, fix, or docs branches meant for the backup project must branch off from `backup/mvp-reference` and use the `backup/` prefix followed by the standard type (e.g., `backup/feat/*`, `backup/fix/*`, `backup/docs/*`).
+- **Best Practices**: Ensure clean, atomic commits and standard Git workflows when working on these backup branches, keeping them strictly isolated from the shared team branches.

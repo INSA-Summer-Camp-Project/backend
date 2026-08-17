@@ -1,9 +1,11 @@
 #!/bin/sh
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
+backup_pattern="^((backup\/)?(feature|feat|bugfix|fix|hotfix|chore|refactor|test|docs|ci)\/[a-zA-Z0-9._-]+|main|master|dev)$"
 pattern="^((feature|feat|bugfix|fix|hotfix|chore|refactor|test|docs|ci)\/[a-zA-Z0-9._-]+|main|master|dev)$"
 
-if echo "$branch" | grep -E "$pattern" > /dev/null 2>&1; then
+# We use || (OR) instead of a pipe (|) so it passes if it matches EITHER the regular pattern OR the backup pattern.
+if echo "$branch" | grep -E "$pattern" > /dev/null 2>&1 || echo "$branch" | grep -E "$backup_pattern" > /dev/null 2>&1; then
   :
 else
   echo "[Error] Invalid branch name: '$branch'"
@@ -14,12 +16,16 @@ else
   echo "  - chore/*"
   echo "  - refactor/*"
   echo "  - test/*"
+  echo "  - [backup/]feature/* or [backup/]feat/*"
+  echo "  - [backup/]bugfix/* or [backup/]fix/*"
+  echo "  - [backup/]hotfix/*"
+  echo "  - [backup/]chore/*"
+  echo "  - [backup/]refactor/*"
+  echo "  - [backup/]test/*"
+  echo "  - [backup/]docs/*"
   echo "  - main / master / dev"
   exit 1
 fi
 
-echo "🔍 Running TypeScript type check..."
-pnpm exec tsc --noEmit || exit 1
-
-echo "🎨 Formatting staged files & running lint-staged checks..."
-pnpm exec lint-staged
+echo "🔍 Running full pre-commit checks (Format, Types, Lint, Tests)..."
+pnpm check || exit 1
