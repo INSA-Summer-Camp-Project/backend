@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
-import type { Request, Response } from "express";
+
 import { parseCookie, stringifySetCookie } from "cookie";
+import type { Request, Response } from "express";
+
 import { env } from "@/config/env";
 
 const COOKIE_NAME = "telegram_oidc_transaction";

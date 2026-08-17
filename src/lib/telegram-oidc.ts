@@ -1,4 +1,5 @@
 import * as oidc from "openid-client";
+
 import { env } from "@/config/env";
 
 const TELEGRAM_ISSUER = new URL("https://oauth.telegram.org");

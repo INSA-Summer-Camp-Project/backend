@@ -1,9 +1,11 @@
 import { Router } from "express";
+
 import * as authController from "@/controllers/auth.controller";
 import * as telegramController from "@/controllers/telegram.controller";
-import { authenticate, authorize } from "@/middlewares/auth.middleware";
-import { validate } from "@/middlewares/validate.middleware";
 import { UpdateRoleDtoSchema } from "@/dtos/auth.dto";
+import { authenticate } from "@/middlewares/auth.middleware";
+import { authorize } from "@/middlewares/authorization.middleware";
+import { validate } from "@/middlewares/validate.middleware";
 
 const router: Router = Router();
 

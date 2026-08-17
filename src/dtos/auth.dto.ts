@@ -1,5 +1,5 @@
+import type { ActiveRole, SystemRole } from "@prisma/client";
 import { z } from "zod";
-import type { SystemRole, ActiveRole } from "@prisma/client";
 
 // DTO Schemas
 export const UpdateRoleDtoSchema = z.object({

@@ -1,23 +1,20 @@
-import type { Request, Response, NextFunction } from "express";
 import { stringifySetCookie } from "cookie";
+import type { NextFunction, Request, Response } from "express";
 
+import { env } from "@/config/env";
 import {
   generateTelegramNonce,
   generateTelegramPkce,
   generateTelegramState,
 } from "@/lib/telegram-oidc";
-
 import {
-  setTelegramOidcTransaction,
-  getTelegramOidcTransaction,
   clearTelegramOidcTransaction,
+  getTelegramOidcTransaction,
+  setTelegramOidcTransaction,
 } from "@/lib/telegram-oidc-cookie";
-
-import * as telegramService from "@/services/telegram.service";
-import * as authService from "@/services/auth.service";
-
-import { env } from "@/config/env";
 import { UnauthorizedError } from "@/middlewares/error.middleware";
+import * as authService from "@/services/auth.service";
+import * as telegramService from "@/services/telegram.service";
 
 export const login = async (
   _req: Request,

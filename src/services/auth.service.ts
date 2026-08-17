@@ -1,13 +1,14 @@
+import type { ActiveRole, SystemRole } from "@prisma/client";
 import jwt from "jsonwebtoken";
-import type { SystemRole, ActiveRole } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+
 import { env } from "@/config/env";
-import { BadRequestError, NotFoundError } from "@/middlewares/error.middleware";
 import type {
-  UserPublicDto,
   AuthTokensDto,
   LoginResponseDto,
+  UserPublicDto,
 } from "@/dtos/auth.dto";
+import { prisma } from "@/lib/prisma";
+import { BadRequestError, NotFoundError } from "@/middlewares/error.middleware";
 
 const userSelect = {
   id: true,
@@ -121,6 +122,14 @@ export const loginWithTelegram = async (telegram: {
 
       await tx.customerProfile.create({
         data: { userId: newUser.id },
+      });
+
+      await tx.workerProfile.create({
+        data: {
+          userId: newUser.id,
+          bio: "",
+          experience: "",
+        },
       });
 
       return tx.user.findUnique({

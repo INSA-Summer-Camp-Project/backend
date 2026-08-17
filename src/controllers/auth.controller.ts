@@ -1,7 +1,9 @@
-import type { Request, Response, NextFunction } from "express";
+import type { NextFunction, Request, Response } from "express";
+
+import { env } from "@/config/env";
+import type { UpdateRoleDto } from "@/dtos/auth.dto";
 import * as authService from "@/services/auth.service";
 import type { ApiResponse } from "@/types/api";
-import type { UpdateRoleDto } from "@/dtos/auth.dto";
 import { sendSuccess } from "@/utils/response.util";
 
 export const getMe = async (
@@ -53,7 +55,7 @@ export const logout = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = env.NODE_ENV === "production";
     res.clearCookie("access_token", {
       httpOnly: true,
       secure: isProduction,
