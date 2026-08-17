@@ -1,4 +1,5 @@
 import "dotenv/config";
+
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -12,14 +13,8 @@ const envSchema = z.object({
 
   FRONTEND_URL: z.string().default("http://localhost:3000"),
 
-  JWT_SECRET: z
-    .string()
-    .default("super-secret-jwt-access-key-for-servicehub-phase1"),
-  JWT_REFRESH_SECRET: z
-    .string()
-    .default("super-secret-jwt-refresh-key-for-servicehub-phase1"),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
-  JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 
   TELEGRAM_CLIENT_ID: z.string().min(1, "TELEGRAM_CLIENT_ID is required"),
   TELEGRAM_CLIENT_SECRET: z
@@ -30,6 +25,8 @@ const envSchema = z.object({
   TELEGRAM_OIDC_COOKIE_SECRET: z
     .string()
     .min(32, "TELEGRAM_OIDC_COOKIE_SECRET is required"),
+
+  CLOUDINARY_URL: z.string().url("CLOUDINARY_URL must be a valid URL"),
 });
 
 const result = envSchema.safeParse(process.env);

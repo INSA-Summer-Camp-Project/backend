@@ -1,4 +1,5 @@
 import type { Response } from "express";
+
 import type { ApiResponse } from "@/types/api";
 
 export const sendSuccess = <T, M = undefined>(

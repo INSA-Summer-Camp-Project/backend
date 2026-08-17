@@ -1,9 +1,10 @@
-import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
-import type { ApiResponse } from "@/types";
-import router from "@/routes";
-import { errorHandler } from "@/middlewares/error.middleware";
+import express, { type Express, type Request, type Response } from "express";
+
 import { corsOptions } from "@/config/cors";
+import { errorHandler } from "@/middlewares/error.middleware";
+import router from "@/routes";
+import type { ApiResponse } from "@/types";
 
 export const app: Express = express();
 
@@ -39,10 +40,6 @@ app.get(
 
 // API v1 Routes
 app.use("/api/v1", router);
-
-// Helper exports preserved for existing tests
-export const getAppName = () => "ServiceHub Backend API";
-export const addNumbers = (a: number, b: number): number => a + b;
 
 // 404 Handler
 app.use((_req: Request, res: Response<ApiResponse<never>>) => {
