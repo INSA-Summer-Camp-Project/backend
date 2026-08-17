@@ -3,8 +3,64 @@
 This is the high-level specification the frontend and backend must agree upon before writing code. All APIs return JSON.
 
 ## Standard Envelopes
-**Success:** `{ "success": true, "data": { ... } }`
-**Error:** `{ "success": false, "error": { "code": "...", "message": "..." } }`
+
+**Every** endpoint returns one of these two shapes. No endpoint ever returns a bare array or bare object at the top level — this is what lets the frontend write one generic response handler instead of a bespoke one per endpoint.
+
+### Success
+
+```json
+{
+  "success": true,
+  "data": {},
+  "meta": {}
+}
+```
+
+`meta` is present only where relevant (e.g. pagination) — omit it otherwise, don't send `"meta": null`.
+
+### Error
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Budget must be a positive number.",
+    "fields": {
+      "budget": "Must be a positive number"
+    }
+  }
+}
+```
+
+`fields` is present only for validation errors (400s tied to a form). `code` is a **stable machine-readable string** — frontend should branch logic on `code`, never on parsing `message`.
+
+### Standard error codes
+
+| Code                      | HTTP status | Meaning                                               |
+| ------------------------- | ----------- | ----------------------------------------------------- |
+| `VALIDATION_ERROR`        | 400         | Request body failed validation                        |
+| `UNAUTHENTICATED`         | 401         | Missing/invalid/expired access token                  |
+| `FORBIDDEN`               | 403         | Valid token, wrong role or not the resource owner     |
+| `NOT_FOUND`               | 404         | Resource doesn't exist                                |
+| `CONFLICT`                | 409         | e.g. profile already exists, duplicate action         |
+| `SELF_ACTION_NOT_ALLOWED` | 403         | User attempted to apply to / hire / review themselves |
+| `INTERNAL_ERROR`          | 500         | Unhandled server error                                |
+
+### Pagination convention
+
+Request: `?page=1&limit=20` (1-indexed, default `limit=20`, max `limit=50`)
+Response `meta`:
+
+```json
+{ "page": 1, "limit": 20, "total": 87, "totalPages": 5 }
+```
+
+### Formatting conventions
+
+- IDs: UUID strings.
+- Dates/times: ISO 8601 strings, UTC (`"2026-08-17T09:30:00Z"`).
+- Money: **decimal string**, not a float — `"500.00"`, not `500.0`. Applies to `budget`, `proposedPrice`, `amount`.
 
 ---
 
