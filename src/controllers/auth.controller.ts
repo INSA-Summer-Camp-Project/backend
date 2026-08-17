@@ -1,54 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import * as authService from "@/services/auth.service";
 import type { ApiResponse } from "@/types/api";
-
-export const register = async (
-  req: Request,
-  res: Response<ApiResponse<unknown>>,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const user = await authService.registerUser(req.body);
-    res.status(201).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const login = async (
-  req: Request,
-  res: Response<ApiResponse<unknown>>,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const result = await authService.loginUser(req.body);
-    res.status(200).json({
-      success: true,
-      data: result,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const refreshToken = async (
-  req: Request,
-  res: Response<ApiResponse<unknown>>,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const result = await authService.refreshAccessToken(req.body.refreshToken);
-    res.status(200).json({
-      success: true,
-      data: result,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+import type { UpdateRoleDto } from "@/dtos/auth.dto";
+import { sendSuccess } from "@/utils/response.util";
 
 export const getMe = async (
   req: Request,
@@ -58,10 +12,21 @@ export const getMe = async (
   try {
     const userId = req.user!.id;
     const user = await authService.getCurrentUser(userId);
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
+    sendSuccess(res, user);
+  } catch (error) {
+    next(error);
+  }
+};
+export const updateRole = async (
+  req: Request<unknown, unknown, UpdateRoleDto>,
+  res: Response<ApiResponse<unknown>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const { activeRole } = req.body;
+    const user = await authService.updateActiveRole(userId, activeRole);
+    sendSuccess(res, user);
   } catch (error) {
     next(error);
   }
@@ -73,13 +38,29 @@ export const adminOnlySample = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    res.status(200).json({
-      success: true,
-      data: {
-        message: "Welcome Admin! Access granted.",
-        user: req.user,
-      },
+    sendSuccess(res, {
+      message: "Welcome Admin! Access granted.",
+      user: req.user,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logout = async (
+  req: Request,
+  res: Response<ApiResponse<unknown>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const isProduction = process.env.NODE_ENV === "production";
+    res.clearCookie("access_token", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      path: "/",
+    });
+    sendSuccess(res, { message: "Logged out successfully" });
   } catch (error) {
     next(error);
   }

@@ -1,31 +1,22 @@
 import { Router } from "express";
 import * as authController from "@/controllers/auth.controller";
 import * as telegramController from "@/controllers/telegram.controller";
-import { validate } from "@/middlewares/validate.middleware";
 import { authenticate, authorize } from "@/middlewares/auth.middleware";
-import {
-  RegisterInputSchema,
-  LoginInputSchema,
-  RefreshTokenInputSchema,
-} from "@/types/auth";
+import { validate } from "@/middlewares/validate.middleware";
+import { UpdateRoleDtoSchema } from "@/dtos/auth.dto";
 
 const router: Router = Router();
 
-router.post(
-  "/register",
-  validate(RegisterInputSchema),
-  authController.register,
-);
-
-router.post("/login", validate(LoginInputSchema), authController.login);
-
-router.post(
-  "/refresh-token",
-  validate(RefreshTokenInputSchema),
-  authController.refreshToken,
-);
-
 router.get("/me", authenticate, authController.getMe);
+
+router.post("/logout", authenticate, authController.logout);
+
+router.put(
+  "/role",
+  authenticate,
+  validate(UpdateRoleDtoSchema),
+  authController.updateRole,
+);
 
 router.get(
   "/admin-only-sample",

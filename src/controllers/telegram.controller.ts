@@ -96,19 +96,6 @@ export const callback = async (
       }),
     );
 
-    res.append(
-      "Set-Cookie",
-      stringifySetCookie({
-        name: "refresh_token",
-        value: result.tokens.refreshToken,
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60,
-      }),
-    );
-
     res.redirect(env.FRONTEND_URL);
   } catch (error) {
     next(error);

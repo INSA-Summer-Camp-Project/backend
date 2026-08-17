@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import type { Role } from "@prisma/client";
+import type { SystemRole } from "@prisma/client";
 import { parseCookie } from "cookie";
 import { env } from "@/config/env";
 import {
@@ -55,7 +55,7 @@ export const authenticate = (
   }
 };
 
-export const authorize = (allowedRoles: Role[]) => {
+export const authorize = (allowedRoles: SystemRole[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       next(new UnauthorizedError("Authentication required"));
@@ -68,5 +68,46 @@ export const authorize = (allowedRoles: Role[]) => {
     }
 
     next();
+  };
+};
+
+import { prisma } from "@/lib/prisma";
+import type { ActiveRole } from "@prisma/client";
+
+export const requireActiveRole = (requiredRole: ActiveRole) => {
+  return async (
+    req: Request,
+    _res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.user) {
+        next(new UnauthorizedError("Authentication required"));
+        return;
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { lastActiveRole: true },
+      });
+
+      if (!user) {
+        next(new UnauthorizedError("User no longer exists"));
+        return;
+      }
+
+      if (user.lastActiveRole !== requiredRole) {
+        next(
+          new ForbiddenError(
+            `Access forbidden: active role must be ${requiredRole}`,
+          ),
+        );
+        return;
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
   };
 };

@@ -48,7 +48,10 @@ export const addNumbers = (a: number, b: number): number => a + b;
 app.use((_req: Request, res: Response<ApiResponse<never>>) => {
   res.status(404).json({
     success: false,
-    error: "Resource not found",
+    error: {
+      code: "NOT_FOUND",
+      message: "Resource not found",
+    },
   });
 });
 
