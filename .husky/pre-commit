@@ -18,8 +18,5 @@ else
   exit 1
 fi
 
-echo "🔍 Running TypeScript type check..."
-pnpm exec tsc --noEmit || exit 1
-
-echo "🎨 Formatting staged files & running lint-staged checks..."
-pnpm exec lint-staged
+echo "🔍 Running full pre-commit checks (Format, Types, Lint, Tests)..."
+pnpm check || exit 1

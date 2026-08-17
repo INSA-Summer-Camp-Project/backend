@@ -5,7 +5,9 @@ Based on the SRS Section 11, here is the streamlined relational schema optimized
 ## Core Entities
 
 ### 1. User
+
 Represents the authenticated human.
+
 - `id` (UUID, PK)
 - `telegramId` (String, Unique)
 - `name` (String)
@@ -14,12 +16,15 @@ Represents the authenticated human.
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 2. CustomerProfile
+
 - `id` (UUID, PK)
 - `userId` (UUID, FK -> User, Unique)
 - `bio` (String, Optional)
 
 ### 3. WorkerProfile
+
 Merges "Individual" and "Business" to save time.
+
 - `id` (UUID, PK)
 - `userId` (UUID, FK -> User, Unique)
 - `bio`, `experience` (String)
@@ -32,18 +37,24 @@ Merges "Individual" and "Business" to save time.
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 4. ServiceCategory
+
 Managed by Admin.
+
 - `id` (UUID, PK)
 - `name` (String) - e.g., "Plumbing", "Electrical"
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 5. WorkerService (Join Table)
+
 Links workers to the categories they operate in.
+
 - `workerProfileId` (UUID)
 - `categoryId` (UUID)
 
 ### 6. Job (Service Request)
+
 Created by Customer.
+
 - `id` (UUID, PK)
 - `customerId` (UUID, FK -> CustomerProfile)
 - `targetWorkerId` (UUID, Nullable, FK -> WorkerProfile) - For Direct Hire requests
@@ -56,7 +67,9 @@ Created by Customer.
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 7. Application (Bid)
+
 Created by Worker in response to a Job.
+
 - `id` (UUID, PK)
 - `jobId` (UUID, FK -> Job)
 - `workerId` (UUID, FK -> WorkerProfile)
@@ -66,7 +79,9 @@ Created by Worker in response to a Job.
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 8. Payment
+
 Records transactions (Chapa/Cash).
+
 - `id` (UUID, PK)
 - `jobId` (UUID, FK -> Job)
 - `amount` (Decimal)
@@ -76,10 +91,12 @@ Records transactions (Chapa/Cash).
 - `txRef` (String, Unique) - Essential for Chapa Webhooks.
 - `platformCommission` (Decimal)
 - `createdAt`, `updatedAt` (DateTime)
-*(Note: When a payment's status changes to `PAID`, the backend automatically increments the assigned worker's `verifiedJobCount` and `verifiedEarningsTotal` as a trust signal.)*
+  _(Note: When a payment's status changes to `PAID`, the backend automatically increments the assigned worker's `verifiedJobCount` and `verifiedEarningsTotal` as a trust signal.)_
 
 ### 9. Review
+
 Created by Customer after completion.
+
 - `id` (UUID, PK)
 - `jobId` (UUID, FK -> Job)
 - `workerId` (UUID, FK -> WorkerProfile)
@@ -89,7 +106,9 @@ Created by Customer after completion.
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 10. PortfolioItem
+
 Added per SRS 11.7.
+
 - `id` (UUID, PK)
 - `workerId` (UUID, FK -> WorkerProfile)
 - `title`, `description` (String)
@@ -98,7 +117,9 @@ Added per SRS 11.7.
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 11. Certificate
+
 Added per SRS 11.8.
+
 - `id` (UUID, PK)
 - `workerId` (UUID, FK -> WorkerProfile)
 - `title` (String)
@@ -107,11 +128,12 @@ Added per SRS 11.8.
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 12. PaymentAccount
+
 Stores provider-specific financial routing details (e.g., Chapa subaccounts) without coupling the core domain to a specific gateway.
+
 - `id` (UUID, PK)
 - `workerProfileId` (UUID, FK -> WorkerProfile, Unique)
 - `provider` (Enum: `CHAPA`)
 - `providerAccountId` (String) - E.g., Chapa subaccount ID
 - `status` (Enum: `ACTIVE`, `PENDING`, `REJECTED`)
 - `createdAt`, `updatedAt` (DateTime)
-
