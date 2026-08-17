@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import type { Role } from "@prisma/client";
+import type { SystemRole } from "@prisma/client";
 import { parseCookie } from "cookie";
 import { env } from "@/config/env";
 import {
@@ -55,7 +55,7 @@ export const authenticate = (
   }
 };
 
-export const authorize = (allowedRoles: Role[]) => {
+export const authorize = (allowedRoles: SystemRole[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       next(new UnauthorizedError("Authentication required"));

@@ -1,9 +1,9 @@
 #!/bin/sh
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
+backup_pattern="^((backup\/)?(feature|feat|bugfix|fix|hotfix|chore|refactor|test|docs|ci)\/[a-zA-Z0-9._-]+|main|master|dev)$"
 pattern="^((feature|feat|bugfix|fix|hotfix|chore|refactor|test|docs|ci)\/[a-zA-Z0-9._-]+|main|master|dev)$"
-
-if echo "$branch" | grep -E "$pattern" > /dev/null 2>&1; then
+if echo "$branch" | grep -E "$pattern" | grep -E > /dev/null 2>&1; then
   :
 else
   echo "[Error] Invalid branch name: '$branch'"
@@ -14,6 +14,13 @@ else
   echo "  - chore/*"
   echo "  - refactor/*"
   echo "  - test/*"
+  echo "  - [backup/]feature/* or [backup/]feat/*"
+  echo "  - [backup/]bugfix/* or [backup/]fix/*"
+  echo "  - [backup/]hotfix/*"
+  echo "  - [backup/]chore/*"
+  echo "  - [backup/]refactor/*"
+  echo "  - [backup/]test/*"
+  echo "  - [backup/]docs/*"
   echo "  - main / master / dev"
   exit 1
 fi
