@@ -48,13 +48,18 @@ export const getWorkerJobs = async (
 };
 
 export const getPublicJobs = async (
-  req: Request,
+  req: Request<
+    Record<string, string>,
+    unknown,
+    unknown,
+    PaginationDto & { categoryId?: string }
+  >,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const pagination = req.query as unknown as PaginationDto;
-    const categoryId = req.query.categoryId as string | undefined;
+    const pagination = req.query;
+    const categoryId = req.query.categoryId;
 
     const result = await jobService.getPublicJobs(pagination, categoryId);
 

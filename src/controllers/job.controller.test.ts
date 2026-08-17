@@ -19,7 +19,12 @@ import { sendSuccess } from "@/utils/response.util";
 
 describe("Job Controller", () => {
   let mockReq: Partial<
-    Request<Record<string, string>, unknown, unknown, PaginationDto>
+    Request<
+      Record<string, string>,
+      unknown,
+      unknown,
+      PaginationDto & { categoryId?: string }
+    >
   >;
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;
@@ -51,7 +56,7 @@ describe("Job Controller", () => {
           Record<string, string>,
           unknown,
           unknown,
-          PaginationDto
+          PaginationDto & { categoryId?: string }
         >,
         mockRes as Response,
         mockNext,
@@ -78,7 +83,7 @@ describe("Job Controller", () => {
           Record<string, string>,
           unknown,
           unknown,
-          PaginationDto
+          PaginationDto & { categoryId?: string }
         >,
         mockRes as Response,
         mockNext,
