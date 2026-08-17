@@ -112,7 +112,7 @@ Response `meta`:
 - Returns: List of workers for Direct Hire browsing.
 
 **GET /api/workers/:id**
-- Returns: Detailed profile, portfolio items, certificates, and reviews for a worker.
+- Returns: Detailed profile, portfolio items, certificates, and reviews for a worker. The worker profile response object includes `verifiedJobCount` and `verifiedEarningsTotal`.
 
 ---
 
@@ -168,7 +168,7 @@ Response `meta`:
 **POST /api/webhooks/chapa**
 - Auth: Chapa Signature Validation
 - Body: Chapa event payload
-- Logic: Verifies signature, finds Payment by `txRef`, updates Payment and Job status.
+- Logic: Verifies signature, finds Payment by `txRef`, updates Payment and Job status. (Note: Confirming a payment increments the assigned worker's `verifiedJobCount` and `verifiedEarningsTotal`).
 
 **POST /api/jobs/:jobId/reviews**
 - Auth: Required (Customer Context)

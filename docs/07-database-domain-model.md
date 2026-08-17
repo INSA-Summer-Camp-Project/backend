@@ -27,6 +27,8 @@ Merges "Individual" and "Business" to save time.
 - `averageRating` (Float, Default: 0)
 - `profileImageUrl` (String, Optional) - Cloudinary URL
 - `profileImagePublicId` (String, Optional) - Cloudinary Public ID
+- `verifiedJobCount` (Int, Default: 0) - Increments when a job payment is confirmed
+- `verifiedEarningsTotal` (Decimal, Default: 0) - Increments when a job payment is confirmed
 - `createdAt`, `updatedAt` (DateTime)
 
 ### 4. ServiceCategory
@@ -74,6 +76,7 @@ Records transactions (Chapa/Cash).
 - `txRef` (String, Unique) - Essential for Chapa Webhooks.
 - `platformCommission` (Decimal)
 - `createdAt`, `updatedAt` (DateTime)
+*(Note: When a payment's status changes to `PAID`, the backend automatically increments the assigned worker's `verifiedJobCount` and `verifiedEarningsTotal` as a trust signal.)*
 
 ### 9. Review
 Created by Customer after completion.
