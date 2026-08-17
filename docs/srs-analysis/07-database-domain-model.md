@@ -22,8 +22,6 @@ Represents the authenticated human.
 Merges "Individual" and "Business" to save time.
 - `id` (UUID, PK)
 - `userId` (UUID, FK -> User, Unique)
-- `isBusiness` (Boolean, Default: false)
-- `businessName` (String, Optional)
 - `bio`, `experience` (String)
 - `baseRate` (Decimal, Optional)
 - `averageRating` (Float, Default: 0)
@@ -46,6 +44,8 @@ Links workers to the categories they operate in.
 Created by Customer.
 - `id` (UUID, PK)
 - `customerId` (UUID, FK -> CustomerProfile)
+- `targetWorkerId` (UUID, Nullable, FK -> WorkerProfile) - For Direct Hire requests
+- `source` (Enum: `MARKETPLACE`, `DIRECT_HIRE`)
 - `categoryId` (UUID, FK -> ServiceCategory)
 - `title`, `description` (String)
 - `budget` (Decimal)
@@ -101,5 +101,14 @@ Added per SRS 11.8.
 - `title` (String)
 - `fileUrl` (String) - Cloudinary URL
 - `filePublicId` (String) - Cloudinary Public ID
+- `createdAt`, `updatedAt` (DateTime)
+
+### 12. PaymentAccount
+Stores provider-specific financial routing details (e.g., Chapa subaccounts) without coupling the core domain to a specific gateway.
+- `id` (UUID, PK)
+- `workerProfileId` (UUID, FK -> WorkerProfile, Unique)
+- `provider` (Enum: `CHAPA`)
+- `providerAccountId` (String) - E.g., Chapa subaccount ID
+- `status` (Enum: `ACTIVE`, `PENDING`, `REJECTED`)
 - `createdAt`, `updatedAt` (DateTime)
 

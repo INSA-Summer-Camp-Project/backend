@@ -22,7 +22,7 @@ This is the high-level specification the frontend and backend must agree upon be
 **POST /api/profiles/worker**
 - Auth: Required
 - Purpose: Upgrades a User to a Worker.
-- Body: `{ bio, isBusiness, categoryIds: [...] }`
+- Body: `{ bio, categoryIds: [...] }`
 
 **PUT /api/profiles/worker**
 - Auth: Required (Worker Context)
@@ -70,8 +70,8 @@ This is the high-level specification the frontend and backend must agree upon be
 - Returns: All active jobs assigned to this worker.
 **POST /api/jobs**
 - Auth: Required (Customer Context)
-- Body: `{ title, description, categoryId, budget }`
-- Response: `201 Created`, Job object.
+- Body: `{ title, description, categoryId, budget, targetWorkerId? }`
+- Response: `201 Created`, Job object. (If targetWorkerId is present, job is DIRECT_HIRE).
 
 **GET /api/jobs/public**
 - Auth: Optional/Required
