@@ -30,8 +30,6 @@ This is the core engine of ServiceHub.
 1. User clicks "Login with Telegram".
 2. Telegram OIDC returns `{ telegramId: "123", first_name: "Abebe" }`.
 3. Backend creates `User`. Returns JWT.
-4. Frontend checks `/api/auth/me`. Sees `phone: null`.
-5. Frontend routes to `/onboarding/phone`. User enters phone, verifies OTP.
-6. Frontend routes to `/onboarding/role`. User selects "I want to offer services".
-7. Backend creates `WorkerProfile`.
-8. Frontend routes to `/worker/dashboard`.
+4. Frontend routes to `/onboarding/role`. User selects "I want to offer services".
+5. Backend creates `WorkerProfile`.
+6. Frontend routes to `/worker/dashboard`.

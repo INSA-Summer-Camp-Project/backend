@@ -12,7 +12,7 @@ This is the high-level specification the frontend and backend must agree upon be
 **GET /api/auth/me**
 - Auth: Required
 - Returns the current user and their active profiles.
-- Response: `{ id, name, phone, customerProfile: { id }, workerProfile: { id } }`
+- Response: `{ id, name, customerProfile: { id }, workerProfile: { id } }`
 
 **POST /api/profiles/worker**
 - Auth: Required

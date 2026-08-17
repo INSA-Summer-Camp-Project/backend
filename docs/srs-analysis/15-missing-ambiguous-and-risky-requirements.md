@@ -13,8 +13,7 @@ After analyzing the SRS, here are the critical gaps that the team must make exec
 ## 3. High Technical Risks (5-Day Scope)
 - **Chat System (FR-036):** True real-time chat requires WebSockets (Socket.io), persistent connections, and complex state management. This is a massive risk for a 5-day hackathon.
   *Recommendation for MVP:* Build a simple "Messages" table. The UI just renders a list of messages. The user has to refresh the page to see new messages. Do not use WebSockets.
-- **Phone Verification (FR-003):** Sending real SMS OTPs requires a paid provider (Twilio, local gateways).
-  *Recommendation for MVP:* Build the UI for OTP input, but hardcode the backend to always accept `"1234"` as the valid code for testing/demo purposes.
+
 
 ## 4. Contradictions
 - **Worker/Business Roles:** The SRS lists them separately (Section 4.2, 4.3) but gives them identical capabilities. Building two identical flows and database structures is a waste of time.

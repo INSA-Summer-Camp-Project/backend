@@ -14,7 +14,6 @@ This matrix defines exact capabilities based on the SRS. It distinguishes betwee
 | Search & Filter Workers | ✓ | ✓ | ✓ | ✓ | FR-021, FR-022 |
 | **Authentication** | | | | | |
 | Login via Telegram | ✓ | ❌ | ❌ | ❌ | FR-004 |
-| Verify Phone | ✓ | ❌ | ❌ | ❌ | FR-003 |
 | **Profile Management** | | | | | |
 | Create/Edit Customer Profile | ❌ | ✓ | ❌ | ✓ | FR-007 |
 | Create/Edit Worker Profile | ❌ | ❌ | ✓ | ✓ | FR-008 |

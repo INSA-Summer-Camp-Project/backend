@@ -10,7 +10,7 @@ With only 5 days, ruthless prioritization is required.
 ## The 5-Day Development Plan
 
 ### Day 1: Foundation & Identity (P0)
-- **Backend:** Setup DB schema (Prisma). Telegram OIDC integration. Phone verification mock (just accept any code for MVP testing).
+- **Backend:** Setup DB schema (Prisma). Telegram OIDC integration.
 - **Frontend:** Next.js setup. Login UI. Role selection screen (`/onboarding/role`). API Client setup with interceptors.
 - **Checkpoint:** A user can log in via Telegram, pick "Customer" or "Worker", and land on an empty dashboard.
 

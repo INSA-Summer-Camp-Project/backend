@@ -1,7 +1,7 @@
 # 02. Authentication & Authorization
 
 ## 1. Authentication Flow (Telegram OIDC)
-The SRS requires secure JWT-based authentication (FR-004) and Phone Verification (FR-003). We are using Telegram OIDC.
+The SRS requires secure JWT-based authentication (FR-004). We are using Telegram OIDC.
 
 **The Expected Auth Flow:**
 1. **Login Trigger:** User clicks "Log in with Telegram" on the frontend.
@@ -10,9 +10,6 @@ The SRS requires secure JWT-based authentication (FR-004) and Phone Verification
    - Backend checks if a `User` exists with the provided `telegramId`.
    - **If Existing User:** Generate a JWT session token and return to frontend.
    - **If New User:** Create a new `User` record in the database.
-4. **The Phone Verification Gap:** 
-   - The SRS states customers *must* register using a phone number (FR-002, FR-003). 
-   - *Technical check:* If the Telegram OIDC payload does not include the user's phone number automatically (or if the user hides it), the backend MUST flag the account as `phoneVerified: false`. The frontend must intercept the login and force the user to input and verify their phone number via OTP before they can access the platform.
 
 **Session Management:**
 - Use an `HttpOnly` cookie containing the JWT to prevent XSS attacks.
@@ -33,7 +30,7 @@ We should strictly separate **System Authentication** from **Marketplace Roles**
 A `USER` can have both a `CustomerProfile` and a `WorkerProfile`. 
 
 **The Recommended Scalable Design:**
-1. **User Identity:** `User { id, telegramId, phone, systemRole: 'USER' }`
+1. **User Identity:** `User { id, telegramId, systemRole: 'USER' }`
 2. **Context Profiles:** 
    - `CustomerProfile { id, userId, ... }`
    - `WorkerProfile { id, userId, ... }`

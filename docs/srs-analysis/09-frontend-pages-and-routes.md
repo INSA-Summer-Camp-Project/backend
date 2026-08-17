@@ -9,7 +9,6 @@ This defines the page inventory for the Next.js web application.
 - **`/worker/:id`:** Public view of a worker's profile, portfolio, and reviews. (P0)
 
 ## 2. Shared Authenticated Routes
-- **`/onboarding/phone`:** Shown immediately if the user's Telegram account didn't provide a phone number. (P0)
 - **`/onboarding/role`:** "Do you want to hire someone or offer services?" (Creates Customer or Worker profile). (P0)
 
 ## 3. Customer Routes (Protected: Customer Profile Required)

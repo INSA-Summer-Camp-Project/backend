@@ -8,7 +8,6 @@ Based on the SRS Section 11, here is the streamlined relational schema optimized
 Represents the authenticated human.
 - `id` (UUID, PK)
 - `telegramId` (String, Unique)
-- `phone` (String, Unique) - *Required by FR-002*
 - `name` (String)
 - `systemRole` (Enum: `USER`, `ADMIN`)
 
