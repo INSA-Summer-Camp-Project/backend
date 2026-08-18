@@ -1,13 +1,17 @@
-import app from "./app";
-import { env } from "./config/env";
+// Internal module imports using @/* path aliases
+import app from "@/app";
+import { env } from "@/config/env";
 
+/**
+ * Server initialization and listener on configured PORT
+ */
 const server = app.listen(env.PORT, () => {
   console.log(
     `🚀 Server listening on port ${env.PORT} in ${env.NODE_ENV} mode`,
   );
 });
 
-// Graceful Shutdown
+// Shutdown
 const shutdown = (signal: string) => {
   console.log(`\n Received ${signal}. Shutting down gracefully...`);
   server.close(() => {
