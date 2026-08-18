@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getPublicJobs } from "@/controllers/job.controller";
 import type { PaginationDto } from "@/dtos/common.dto";
 import * as jobService from "@/services/job.service";
+import { sendSuccess } from "@/utils/response.util";
 
 // Mock the service
 vi.mock("@/services/job.service", () => ({
@@ -14,8 +15,6 @@ vi.mock("@/services/job.service", () => ({
 vi.mock("@/utils/response.util", () => ({
   sendSuccess: vi.fn(),
 }));
-
-import { sendSuccess } from "@/utils/response.util";
 
 describe("Job Controller", () => {
   let mockReq: Partial<
@@ -48,8 +47,15 @@ describe("Job Controller", () => {
         meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(jobService.getPublicJobs).mockResolvedValue(mockResult as any);
+      // The mocked service resolves to our mock result properly casted to unknown first if needed,
+      // but getPublicJobs returns a specific type. Let's just mockResolvedValue without any.
+      vi.mocked(jobService.getPublicJobs).mockResolvedValue(
+        mockResult as unknown as ReturnType<
+          typeof jobService.getPublicJobs
+        > extends Promise<infer U>
+          ? U
+          : never,
+      );
 
       await getPublicJobs(
         mockReq as Request<

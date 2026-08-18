@@ -1,5 +1,6 @@
 import type { ActiveRole } from "@prisma/client";
-import type { NextFunction, Request, Response } from "express";
+import type { RequestHandler } from "express";
+import type { ParsedQs } from "qs";
 
 import { prisma } from "@/lib/prisma";
 import {
@@ -7,12 +8,16 @@ import {
   UnauthorizedError,
 } from "@/middlewares/error.middleware";
 
-export const requireActiveRole = (requiredRole: ActiveRole) => {
-  return async (
-    req: Request,
-    _res: Response,
-    next: NextFunction,
-  ): Promise<void> => {
+export const requireActiveRole =
+  <
+    P = Record<string, string>,
+    ResBody = unknown,
+    ReqBody = unknown,
+    ReqQuery = ParsedQs,
+  >(
+    requiredRole: ActiveRole,
+  ): RequestHandler<P, ResBody, ReqBody, ReqQuery> =>
+  async (req, _res, next): Promise<void> => {
     try {
       if (!req.user) {
         next(new UnauthorizedError("Authentication required"));
@@ -43,4 +48,3 @@ export const requireActiveRole = (requiredRole: ActiveRole) => {
       next(error);
     }
   };
-};

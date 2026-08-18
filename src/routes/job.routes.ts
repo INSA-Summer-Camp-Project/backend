@@ -2,7 +2,7 @@ import { ActiveRole } from "@prisma/client";
 import { Router } from "express";
 
 import * as jobController from "@/controllers/job.controller";
-import { paginationSchema } from "@/dtos/common.dto";
+import { type PaginationDto, paginationSchema } from "@/dtos/common.dto";
 import { createJobSchema, updateJobStatusSchema } from "@/dtos/job.dto";
 import { requireActiveRole } from "@/middlewares/active-role.middleware";
 import { authenticate, optionalAuth } from "@/middlewares/auth.middleware";
@@ -11,7 +11,12 @@ import { validate } from "@/middlewares/validate.middleware";
 const router: Router = Router();
 
 // Public routes (though authenticate might be used optionally in the controller)
-router.get(
+router.get<
+  Record<string, string>,
+  unknown,
+  unknown,
+  PaginationDto & { categoryId?: string }
+>(
   "/public",
   validate({ query: paginationSchema }),
   jobController.getPublicJobs,

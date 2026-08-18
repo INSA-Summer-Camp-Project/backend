@@ -27,6 +27,12 @@ const envSchema = z.object({
     .min(32, "TELEGRAM_OIDC_COOKIE_SECRET is required"),
 
   CLOUDINARY_URL: z.string().url("CLOUDINARY_URL must be a valid URL"),
+
+  CHAPA_PUBLIC_KEY: z.string().min(1, "CHAPA_PUBLIC_KEY is required"),
+  CHAPA_SECRET_KEY: z.string().min(1, "CHAPA_SECRET_KEY is required"),
+  CHAPA_ENCRYPTION_KEY: z.string().min(1, "CHAPA_ENCRYPTION_KEY is required"),
+  CHAPA_RETURN_URL: z.string().url().optional(),
+  CHAPA_CALLBACK_URL: z.string().url().optional(),
 });
 
 const result = envSchema.safeParse(process.env);
