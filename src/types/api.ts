@@ -17,5 +17,12 @@ export interface ApiErrorResponse {
   };
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export type ApiResponse<T, M = undefined> =
   ApiSuccessResponse<T, M> | ApiErrorResponse;
