@@ -3,6 +3,7 @@ import * as authService from "@/services/auth.service";
 import type { ApiResponse } from "@/types/api";
 import type { UpdateRoleDto } from "@/dtos/auth.dto";
 import { sendSuccess } from "@/utils/response.util";
+import { env } from "@/config/env";
 
 export const getMe = async (
   req: Request,
@@ -53,7 +54,7 @@ export const logout = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = env.NODE_ENV === "production";
     res.clearCookie("access_token", {
       httpOnly: true,
       secure: isProduction,

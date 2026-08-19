@@ -1,13 +1,42 @@
 import type { Request, Response, NextFunction } from "express";
 import * as workerService from "@/services/worker.service";
-import { sendSuccess } from "@/utils/response.util";
+import type { ApiResponse, PaginationMeta } from "@/types/api";
 import type {
+  WorkerQueryDto,
   UpdateWorkerProfileDto,
   CreateWorkerServiceDto,
   UpdateWorkerServiceDto,
   CreatePortfolioDto,
   CreateCertificateDto,
 } from "@/dtos/worker.dto";
+import { sendSuccess } from "@/utils/response.util";
+
+export const getWorkers = async (
+  req: Request,
+  res: Response<ApiResponse<unknown, PaginationMeta>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const query = req.query as unknown as WorkerQueryDto;
+    const result = await workerService.getWorkers(query);
+    sendSuccess(res, result.workers, 200, result.meta);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getWorkerById = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<unknown>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const worker = await workerService.getWorkerById(req.params.id);
+    sendSuccess(res, worker);
+  } catch (error) {
+    next(error);
+  }
+};
 
 // Profile
 export const getMyProfile = async (
@@ -32,19 +61,6 @@ export const updateMyProfile = async (
   try {
     const userId = req.user!.id;
     const worker = await workerService.updateMyProfile(userId, req.body);
-    sendSuccess(res, worker);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const getPublicProfile = async (
-  req: Request<{ id: string }>,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const worker = await workerService.getPublicProfile(req.params.id);
     sendSuccess(res, worker);
   } catch (error) {
     next(error);

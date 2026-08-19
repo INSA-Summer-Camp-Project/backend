@@ -1,6 +1,8 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { NotFoundError, ForbiddenError } from "@/middlewares/error.middleware";
 import type {
+  WorkerQueryDto,
   UpdateWorkerProfileDto,
   CreateWorkerServiceDto,
   UpdateWorkerServiceDto,
@@ -16,6 +18,75 @@ const defaultUserSelect = {
   phone: true,
 };
 
+const workerListSelect = {
+  id: true,
+  userId: true,
+  bio: true,
+  experienceYears: true,
+  paymentRate: true,
+  ratingAvg: true,
+  profilePhoto: true,
+  createdAt: true,
+  user: {
+    select: {
+      id: true,
+      name: true,
+      telegramId: true,
+    },
+  },
+  services: {
+    select: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+};
+
+const workerDetailSelect = {
+  ...workerListSelect,
+  updatedAt: true,
+  portfolios: {
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      imageUrl: true,
+      createdAt: true,
+    },
+  },
+  certificates: {
+    select: {
+      id: true,
+      title: true,
+      fileUrl: true,
+      issuedDate: true,
+    },
+  },
+  reviews: {
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      customer: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
+};
+
 const getWorkerOrThrow = async (userId: string) => {
   const worker = await prisma.worker.findUnique({
     where: { userId },
@@ -23,6 +94,120 @@ const getWorkerOrThrow = async (userId: string) => {
 
   if (!worker) {
     throw new NotFoundError("Worker profile not found");
+  }
+
+  return worker;
+};
+
+/**
+ * Retrieves a paginated list of worker profiles based on search and filter parameters.
+ */
+export const getWorkers = async (query: WorkerQueryDto) => {
+  const {
+    categoryId,
+    search,
+    minRating,
+    minRate,
+    maxRate,
+    sortBy,
+    page,
+    limit,
+  } = query;
+
+  const AND: Prisma.WorkerWhereInput[] = [];
+
+  if (categoryId) {
+    AND.push({
+      services: {
+        some: { categoryId },
+      },
+    });
+  }
+
+  if (search?.trim()) {
+    const trimmed = search.trim();
+    AND.push({
+      OR: [
+        { bio: { contains: trimmed, mode: "insensitive" } },
+        { user: { name: { contains: trimmed, mode: "insensitive" } } },
+      ],
+    });
+  }
+
+  if (minRating !== undefined) {
+    AND.push({
+      ratingAvg: { gte: minRating },
+    });
+  }
+
+  if (minRate !== undefined) {
+    AND.push({
+      paymentRate: { gte: minRate },
+    });
+  }
+
+  if (maxRate !== undefined) {
+    AND.push({
+      paymentRate: { lte: maxRate },
+    });
+  }
+
+  const where: Prisma.WorkerWhereInput = AND.length > 0 ? { AND } : {};
+
+  let orderBy: Prisma.WorkerOrderByWithRelationInput[];
+
+  switch (sortBy) {
+    case "newest":
+      orderBy = [{ createdAt: "desc" }];
+      break;
+    case "rate_asc":
+      orderBy = [{ paymentRate: "asc" }, { ratingAvg: "desc" }];
+      break;
+    case "rate_desc":
+      orderBy = [{ paymentRate: "desc" }, { ratingAvg: "desc" }];
+      break;
+    case "rating":
+    default:
+      orderBy = [{ ratingAvg: "desc" }, { createdAt: "desc" }];
+      break;
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [workers, total] = await Promise.all([
+    prisma.worker.findMany({
+      where,
+      select: workerListSelect,
+      orderBy,
+      skip,
+      take: limit,
+    }),
+    prisma.worker.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    workers,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
+};
+
+export const getWorkerById = async (workerId: string) => {
+  const worker = await prisma.worker.findFirst({
+    where: {
+      OR: [{ id: workerId }, { userId: workerId }],
+    },
+    select: workerDetailSelect,
+  });
+
+  if (!worker) {
+    throw new NotFoundError("Worker not found");
   }
 
   return worker;
@@ -92,27 +277,7 @@ export const updateMyProfile = async (
 };
 
 export const getPublicProfile = async (workerId: string) => {
-  const worker = await prisma.worker.findUnique({
-    where: { id: workerId },
-    include: {
-      services: {
-        include: {
-          category: true,
-        },
-      },
-      portfolios: true,
-      certificates: true,
-      user: {
-        select: defaultUserSelect,
-      },
-    },
-  });
-
-  if (!worker) {
-    throw new NotFoundError("Worker not found");
-  }
-
-  return worker;
+  return getWorkerById(workerId);
 };
 
 // --- Services ---

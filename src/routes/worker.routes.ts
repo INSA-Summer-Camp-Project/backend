@@ -9,9 +9,17 @@ import {
   UpdateWorkerServiceSchema,
   CreatePortfolioSchema,
   CreateCertificateSchema,
+  WorkerQueryDtoSchema,
 } from "@/dtos/worker.dto";
 
 const router: Router = Router();
+
+router.get(
+  "/",
+  authenticate,
+  validate(WorkerQueryDtoSchema, "query"),
+  workerController.getWorkers,
+);
 
 const workerOnly = [authenticate, requireRole(["WORKER"])];
 
@@ -71,6 +79,6 @@ router.delete(
 );
 
 // Public Profile (by worker.id)
-router.get("/:id", workerController.getPublicProfile);
+router.get("/:id", workerController.getWorkerById);
 
 export default router;

@@ -1,7 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import type { SystemRole } from "@prisma/client";
+import type { SystemRole, ActiveRole } from "@prisma/client";
 import { parseCookie } from "cookie";
+import { prisma } from "@/lib/prisma";
 import { env } from "@/config/env";
 import {
   UnauthorizedError,
@@ -70,9 +71,6 @@ export const authorize = (allowedRoles: SystemRole[]) => {
     next();
   };
 };
-
-import { prisma } from "@/lib/prisma";
-import type { ActiveRole } from "@prisma/client";
 
 export const requireActiveRole = (requiredRole: ActiveRole) => {
   return async (

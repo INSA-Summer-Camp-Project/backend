@@ -1,12 +1,17 @@
 import { Router } from "express";
 import authRouter from "@/routes/auth.routes";
 import categoryRouter from "@/routes/category.routes";
+import profileRouter from "@/routes/profile.routes";
 import workerRouter from "@/routes/worker.routes";
+import searchRouter from "@/routes/search.routes";
 
 const router: Router = Router();
 
+// Endpoint grouping for API v1
 router.use("/auth", authRouter);
 router.use("/categories", categoryRouter);
+router.use("/profiles", profileRouter);
 router.use("/workers", workerRouter);
+router.use("/search", searchRouter);
 
 export default router;

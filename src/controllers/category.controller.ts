@@ -1,11 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import * as categoryService from "@/services/category.service";
+import type { ApiResponse } from "@/types/api";
 import { sendSuccess } from "@/utils/response.util";
 import type { CreateCategoryDto } from "@/dtos/category.dto";
 
 export const getCategories = async (
   _req: Request,
-  res: Response,
+  res: Response<ApiResponse<unknown>>,
   next: NextFunction,
 ): Promise<void> => {
   try {
@@ -15,7 +16,6 @@ export const getCategories = async (
     next(error);
   }
 };
-
 export const createCategory = async (
   req: Request<unknown, unknown, CreateCategoryDto>,
   res: Response,
