@@ -6,6 +6,7 @@ import workerRouter from "@/routes/worker.routes";
 import searchRouter from "@/routes/search.routes";
 import jobRouter from "@/routes/job.routes";
 import applicationRouter from "@/routes/application.routes";
+import reviewRouter from "@/routes/review.routes";
 
 const router: Router = Router();
 
@@ -17,5 +18,6 @@ router.use("/workers", workerRouter);
 router.use("/search", searchRouter);
 router.use("/jobs", jobRouter);
 router.use("/applications", applicationRouter);
+router.use("/reviews", reviewRouter);
 
 export default router;

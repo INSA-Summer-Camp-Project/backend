@@ -78,7 +78,16 @@ router.delete(
   workerController.deleteCertificate,
 );
 
-// Public Profile (by worker.id)
+import * as reviewController from "@/controllers/review.controller";
+import { workerReviewsQuerySchema } from "@/dtos/review.dto";
+
+// Public Profile & Reputation (by worker.id)
 router.get("/:id", workerController.getWorkerById);
+router.get(
+  "/:id/reviews",
+  validate(workerReviewsQuerySchema, "query"),
+  reviewController.getWorkerReviews,
+);
+router.get("/:id/reputation", reviewController.getWorkerReputation);
 
 export default router;
