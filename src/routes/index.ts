@@ -4,6 +4,8 @@ import categoryRouter from "@/routes/category.routes";
 import profileRouter from "@/routes/profile.routes";
 import workerRouter from "@/routes/worker.routes";
 import searchRouter from "@/routes/search.routes";
+import jobRouter from "@/routes/job.routes";
+import applicationRouter from "@/routes/application.routes";
 
 const router: Router = Router();
 
@@ -13,5 +15,7 @@ router.use("/categories", categoryRouter);
 router.use("/profiles", profileRouter);
 router.use("/workers", workerRouter);
 router.use("/search", searchRouter);
+router.use("/jobs", jobRouter);
+router.use("/applications", applicationRouter);
 
 export default router;
