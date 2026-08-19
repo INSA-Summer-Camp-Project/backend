@@ -48,7 +48,7 @@ describe("Upload Controller", () => {
       expect(sendSuccess).toHaveBeenCalledWith(mockRes, mockResult);
     });
 
-    it("should call next with error if service throws", () => {
+    it("should call next with error if service throws", async () => {
       const error = new Error("Config error");
       vi.mocked(uploadService.generateUploadSignature).mockImplementation(
         () => {
@@ -56,7 +56,11 @@ describe("Upload Controller", () => {
         },
       );
 
-      getUploadSignature(mockReq as Request, mockRes as Response, mockNext);
+      await getUploadSignature(
+        mockReq as Request,
+        mockRes as Response,
+        mockNext,
+      );
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

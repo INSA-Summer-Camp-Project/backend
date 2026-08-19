@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { env } from "@/config/env";
 import { callback, login } from "@/controllers/telegram.controller";
+import { UnauthorizedError } from "@/errors";
 import {
   generateTelegramNonce,
   generateTelegramPkce,
@@ -14,7 +15,6 @@ import {
   getTelegramOidcTransaction,
   setTelegramOidcTransaction,
 } from "@/lib/telegram-oidc-cookie";
-import { UnauthorizedError } from "@/middlewares/error.middleware";
 import * as authService from "@/services/auth.service";
 import * as telegramService from "@/services/telegram.service";
 

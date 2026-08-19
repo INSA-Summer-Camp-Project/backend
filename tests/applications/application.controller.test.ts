@@ -54,7 +54,11 @@ describe("Application Controller", () => {
       );
 
       await createApplication(
-        mockReq as Request<unknown, unknown, CreateApplicationDto>,
+        mockReq as Request<
+          Record<string, string>,
+          unknown,
+          CreateApplicationDto
+        >,
         mockRes as Response,
         mockNext,
       );
@@ -71,7 +75,11 @@ describe("Application Controller", () => {
       vi.mocked(applicationService.createApplication).mockRejectedValue(error);
 
       await createApplication(
-        mockReq as Request<unknown, unknown, CreateApplicationDto>,
+        mockReq as Request<
+          Record<string, string>,
+          unknown,
+          CreateApplicationDto
+        >,
         mockRes as Response,
         mockNext,
       );

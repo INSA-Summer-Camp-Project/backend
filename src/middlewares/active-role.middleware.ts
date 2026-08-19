@@ -2,11 +2,16 @@ import type { ActiveRole } from "@prisma/client";
 import type { RequestHandler } from "express";
 import type { ParsedQs } from "qs";
 
+import { ForbiddenError, UnauthorizedError } from "@/errors";
 import { prisma } from "@/lib/prisma";
-import {
-  ForbiddenError,
-  UnauthorizedError,
-} from "@/middlewares/error.middleware";
+
+// Simple memory cache for active roles to avoid hitting the DB on every request
+interface CacheEntry {
+  role: ActiveRole | null;
+  expiresAt: number;
+}
+const activeRoleCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 1000; // 1 minute
 
 export const requireActiveRole =
   <
@@ -24,17 +29,36 @@ export const requireActiveRole =
         return;
       }
 
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { lastActiveRole: true },
-      });
+      const userId = req.user.id;
+      const now = Date.now();
 
-      if (!user) {
-        next(new UnauthorizedError("User no longer exists"));
-        return;
+      // Check cache
+      const cached = activeRoleCache.get(userId);
+      let userRole: ActiveRole | null = null;
+
+      if (cached && cached.expiresAt > now) {
+        userRole = cached.role;
+      } else {
+        // Cache miss or expired, fetch from DB
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { lastActiveRole: true },
+        });
+
+        if (!user) {
+          next(new UnauthorizedError("User no longer exists"));
+          return;
+        }
+
+        userRole = user.lastActiveRole;
+        // Set cache
+        activeRoleCache.set(userId, {
+          role: userRole,
+          expiresAt: now + CACHE_TTL_MS,
+        });
       }
 
-      if (user.lastActiveRole !== requiredRole) {
+      if (userRole !== requiredRole) {
         next(
           new ForbiddenError(
             `Access forbidden: active role must be ${requiredRole}`,
@@ -48,3 +72,8 @@ export const requireActiveRole =
       next(error);
     }
   };
+
+// Export a way to invalidate cache if active role is updated manually
+export const invalidateActiveRoleCache = (userId: string) => {
+  activeRoleCache.delete(userId);
+};

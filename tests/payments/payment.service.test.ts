@@ -6,10 +6,11 @@ import {
 } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ChapaClient } from "@/lib/chapa/chapa.client";
+import { chapaClient } from "@/lib/chapa/chapa.client";
 import { prisma } from "@/lib/prisma";
 import * as applicationService from "@/services/application.service";
 import * as paymentService from "@/services/payment.service";
+import * as paymentWebhookService from "@/services/payment-webhook.service";
 
 // Mock dependencies
 vi.mock("@/lib/prisma", () => ({
@@ -22,7 +23,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/chapa/chapa.client", () => ({
-  ChapaClient: {
+  chapaClient: {
     initializeCheckout: vi.fn(),
     verifyPayment: vi.fn(),
   },
@@ -88,7 +89,7 @@ describe("Payment Service", () => {
       vi.mocked(prisma.customerProfile.findUnique).mockResolvedValue(
         mockCustomer as never,
       );
-      vi.mocked(ChapaClient.initializeCheckout).mockResolvedValue({
+      vi.mocked(chapaClient.initializeCheckout).mockResolvedValue({
         data: { checkout_url: "https://chapa.co/checkout/123" },
       } as never);
 
@@ -104,7 +105,7 @@ describe("Payment Service", () => {
         }),
       });
 
-      expect(ChapaClient.initializeCheckout).toHaveBeenCalled();
+      expect(chapaClient.initializeCheckout).toHaveBeenCalled();
       expect(result.checkoutUrl).toBe("https://chapa.co/checkout/123");
       expect(result.txRef).toBeDefined();
     });
@@ -122,7 +123,7 @@ describe("Payment Service", () => {
       vi.mocked(prisma.payment.findUnique).mockResolvedValue(
         mockPayment as never,
       );
-      vi.mocked(ChapaClient.verifyPayment).mockResolvedValue({
+      vi.mocked(chapaClient.verifyPayment).mockResolvedValue({
         status: "success",
         data: { status: "success" },
       } as never);
@@ -135,9 +136,10 @@ describe("Payment Service", () => {
         assignedJob: { id: "job-1", status: JobStatus.ASSIGNED },
       } as never);
 
-      const result = await paymentService.handleSuccessfulPayment("tx-123");
+      const result =
+        await paymentWebhookService.handleSuccessfulPayment("tx-123");
 
-      expect(ChapaClient.verifyPayment).toHaveBeenCalledWith("tx-123");
+      expect(chapaClient.verifyPayment).toHaveBeenCalledWith("tx-123");
       expect(prisma.payment.update).toHaveBeenCalledWith({
         where: { id: "pay-1" },
         data: { status: PaymentStatus.PAID },
@@ -160,13 +162,14 @@ describe("Payment Service", () => {
         status: PaymentStatus.PAID,
       } as never);
 
-      const result = await paymentService.handleSuccessfulPayment("tx-123");
+      const result =
+        await paymentWebhookService.handleSuccessfulPayment("tx-123");
 
       expect(result).toEqual({
         success: true,
         message: "Payment already processed",
       });
-      expect(ChapaClient.verifyPayment).not.toHaveBeenCalled();
+      expect(chapaClient.verifyPayment).not.toHaveBeenCalled();
     });
   });
 });

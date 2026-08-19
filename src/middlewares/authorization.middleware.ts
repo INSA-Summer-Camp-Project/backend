@@ -1,10 +1,7 @@
 import type { SystemRole } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
 
-import {
-  ForbiddenError,
-  UnauthorizedError,
-} from "@/middlewares/error.middleware";
+import { ForbiddenError, UnauthorizedError } from "@/errors";
 
 export const authorize = (allowedRoles: SystemRole[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {

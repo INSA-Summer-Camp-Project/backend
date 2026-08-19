@@ -1,8 +1,8 @@
 import type { PaginationDto } from "@/dtos/common.dto";
 import { getPaginationMeta } from "@/dtos/common.dto";
 import type { CreateJobDto, UpdateJobStatusDto } from "@/dtos/job.dto";
+import { NotFoundError } from "@/errors";
 import { prisma } from "@/lib/prisma";
-import { NotFoundError } from "@/middlewares/error.middleware";
 
 export const createJob = async (userId: string, dto: CreateJobDto) => {
   const customerProfile = await prisma.customerProfile.findUnique({

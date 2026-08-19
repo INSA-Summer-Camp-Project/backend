@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { NotFoundError } from "@/errors";
 import { prisma } from "@/lib/prisma";
-import { NotFoundError } from "@/middlewares/error.middleware";
 import * as workerService from "@/services/worker.service";
 
 vi.mock("@/lib/prisma", () => ({

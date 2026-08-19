@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { UnauthorizedError } from "@/errors";
 import { extractToken } from "@/lib/auth/extract-token";
 import { verifyToken } from "@/lib/auth/verify-token";
 import { authenticate, optionalAuth } from "@/middlewares/auth.middleware";
-import { UnauthorizedError } from "@/middlewares/error.middleware";
 
 vi.mock("@/lib/auth/extract-token", () => ({
   extractToken: vi.fn(),

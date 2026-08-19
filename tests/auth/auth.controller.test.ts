@@ -2,12 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { env } from "@/config/env";
-import {
-  adminOnlySample,
-  getMe,
-  logout,
-  updateRole,
-} from "@/controllers/auth.controller";
+import { getMe, logout, updateRole } from "@/controllers/auth.controller";
 import type { UpdateRoleDto } from "@/dtos/auth.dto";
 import * as authService from "@/services/auth.service";
 import { sendSuccess } from "@/utils/response.util";
@@ -73,7 +68,7 @@ describe("Auth Controller", () => {
       );
 
       await updateRole(
-        mockReq as Request<unknown, unknown, UpdateRoleDto>,
+        mockReq as Request<Record<string, string>, unknown, UpdateRoleDto>,
         mockRes as Response,
         mockNext,
       );
@@ -83,17 +78,6 @@ describe("Auth Controller", () => {
         "WORKER",
       );
       expect(sendSuccess).toHaveBeenCalledWith(mockRes, mockUser);
-    });
-  });
-
-  describe("adminOnlySample", () => {
-    it("should send success response with admin message", async () => {
-      await adminOnlySample(mockReq as Request, mockRes as Response, mockNext);
-
-      expect(sendSuccess).toHaveBeenCalledWith(mockRes, {
-        message: "Welcome Admin! Access granted.",
-        user: mockReq.user,
-      });
     });
   });
 

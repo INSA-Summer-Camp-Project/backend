@@ -1,11 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ForbiddenError, UnauthorizedError } from "@/errors";
 import { authorize } from "@/middlewares/authorization.middleware";
-import {
-  ForbiddenError,
-  UnauthorizedError,
-} from "@/middlewares/error.middleware";
 
 describe("Authorization Middleware", () => {
   let mockReq: Partial<Request>;

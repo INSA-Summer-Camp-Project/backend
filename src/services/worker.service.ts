@@ -1,7 +1,7 @@
 import type { PaginationDto } from "@/dtos/common.dto";
 import { getPaginationMeta } from "@/dtos/common.dto";
+import { NotFoundError } from "@/errors";
 import { prisma } from "@/lib/prisma";
-import { NotFoundError } from "@/middlewares/error.middleware";
 
 export const getWorkers = async (
   pagination: PaginationDto,

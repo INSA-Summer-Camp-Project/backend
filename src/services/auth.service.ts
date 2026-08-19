@@ -7,32 +7,10 @@ import type {
   LoginResponseDto,
   UserPublicDto,
 } from "@/dtos/auth.dto";
+import { BadRequestError, NotFoundError } from "@/errors";
 import { prisma } from "@/lib/prisma";
-import { BadRequestError, NotFoundError } from "@/middlewares/error.middleware";
-
-const userSelect = {
-  id: true,
-  name: true,
-  telegramId: true,
-  systemRole: true,
-  lastActiveRole: true,
-  createdAt: true,
-  updatedAt: true,
-  customerProfile: {
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  },
-  workerProfile: {
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  },
-};
+import { invalidateActiveRoleCache } from "@/middlewares/active-role.middleware";
+import { userSelect } from "@/queries/user.queries";
 
 type JwtExpiresIn = NonNullable<jwt.SignOptions["expiresIn"]>;
 
@@ -95,6 +73,8 @@ export const updateActiveRole = async (
     data: { lastActiveRole: activeRole },
     select: userSelect,
   });
+
+  invalidateActiveRoleCache(userId);
 
   return updatedUser as UserPublicDto;
 };

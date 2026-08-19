@@ -3,8 +3,8 @@ import type {
   CreatePortfolioDto,
   UpdateWorkerProfileDto,
 } from "@/dtos/profile.dto";
+import { NotFoundError } from "@/errors";
 import { prisma } from "@/lib/prisma";
-import { NotFoundError } from "@/middlewares/error.middleware";
 
 export const updateWorkerProfile = async (
   userId: string,

@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
 import { env } from "@/config/env";
-import { UnauthorizedError } from "@/middlewares/error.middleware";
+import { UnauthorizedError } from "@/errors";
 import type { JwtPayload } from "@/types/auth";
 
 export const verifyToken = (token: string): JwtPayload => {

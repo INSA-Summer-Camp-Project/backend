@@ -19,13 +19,21 @@ export interface InitializeCheckoutInput {
   };
 }
 
-export class ChapaClient {
-  private static readonly BASE_URL = "https://api.chapa.co/v1";
+export interface IPaymentGateway {
+  initializeCheckout(
+    input: InitializeCheckoutInput,
+  ): Promise<ChapaInitializeResponse>;
+  verifyPayment(txRef: string): Promise<ChapaVerifyResponse>;
+  verifyWebhookSignature(payload: string, signature: string): boolean;
+}
+
+export class ChapaGateway implements IPaymentGateway {
+  private readonly baseUrl = "https://api.chapa.co/v1";
 
   /**
    * Initializes a payment with Chapa and returns the checkout URL
    */
-  static async initializeCheckout(
+  async initializeCheckout(
     input: InitializeCheckoutInput,
   ): Promise<ChapaInitializeResponse> {
     const payload = {
@@ -43,7 +51,7 @@ export class ChapaClient {
       },
     };
 
-    const response = await fetch(`${this.BASE_URL}/transaction/initialize`, {
+    const response = await fetch(`${this.baseUrl}/transaction/initialize`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.CHAPA_SECRET_KEY}`,
@@ -66,9 +74,9 @@ export class ChapaClient {
   /**
    * Verifies a payment with Chapa using the transaction reference
    */
-  static async verifyPayment(txRef: string): Promise<ChapaVerifyResponse> {
+  async verifyPayment(txRef: string): Promise<ChapaVerifyResponse> {
     const response = await fetch(
-      `${this.BASE_URL}/transaction/verify/${txRef}`,
+      `${this.baseUrl}/transaction/verify/${txRef}`,
       {
         method: "GET",
         headers: {
@@ -92,7 +100,7 @@ export class ChapaClient {
   /**
    * Verify Chapa webhook signature
    */
-  static verifyWebhookSignature(payload: string, signature: string): boolean {
+  verifyWebhookSignature(payload: string, signature: string): boolean {
     const hash = crypto
       .createHmac("sha256", env.CHAPA_ENCRYPTION_KEY)
       .update(payload)
@@ -101,3 +109,5 @@ export class ChapaClient {
     return hash === signature;
   }
 }
+
+export const chapaClient = new ChapaGateway();

@@ -2,8 +2,8 @@ import jwt from "jsonwebtoken";
 import { describe, expect, it, vi } from "vitest";
 
 import { env } from "@/config/env";
+import { UnauthorizedError } from "@/errors";
 import { verifyToken } from "@/lib/auth/verify-token";
-import { UnauthorizedError } from "@/middlewares/error.middleware";
 
 vi.mock("jsonwebtoken", () => ({
   default: {

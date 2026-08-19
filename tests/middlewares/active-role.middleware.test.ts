@@ -2,12 +2,12 @@ import { ActiveRole } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ForbiddenError, UnauthorizedError } from "@/errors";
 import { prisma } from "@/lib/prisma";
-import { requireActiveRole } from "@/middlewares/active-role.middleware";
 import {
-  ForbiddenError,
-  UnauthorizedError,
-} from "@/middlewares/error.middleware";
+  invalidateActiveRoleCache,
+  requireActiveRole,
+} from "@/middlewares/active-role.middleware";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -26,6 +26,7 @@ describe("Active Role Middleware", () => {
 
     mockNext = vi.fn();
     vi.clearAllMocks();
+    invalidateActiveRoleCache("user-1");
   });
 
   it("should call next with error if no user on request", async () => {

@@ -6,11 +6,11 @@ import {
   AppError,
   BadRequestError,
   ConflictError,
-  errorHandler,
   ForbiddenError,
   NotFoundError,
   UnauthorizedError,
-} from "@/middlewares/error.middleware";
+} from "@/errors";
+import { errorHandler } from "@/middlewares/error.middleware";
 
 describe("Error Middleware", () => {
   let mockReq: Partial<Request>;

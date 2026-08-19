@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 
+import { UnauthorizedError } from "@/errors";
 import { extractToken } from "@/lib/auth/extract-token";
 import { verifyToken } from "@/lib/auth/verify-token";
-import { UnauthorizedError } from "@/middlewares/error.middleware";
 
 export const authenticate = (
   req: Request,

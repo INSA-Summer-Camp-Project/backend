@@ -6,9 +6,10 @@ import {
 } from "@prisma/client";
 
 import { env } from "@/config/env";
-import { ChapaClient } from "@/lib/chapa/chapa.client";
+import { chapaClient } from "@/lib/chapa/chapa.client";
 import { prisma } from "@/lib/prisma";
-import { acceptAndAssignJob } from "@/services/application.service";
+
+const PLATFORM_COMMISSION_RATE = 0.1; // 10% commission
 
 export const createCheckout = async (
   customerId: string,
@@ -49,7 +50,8 @@ export const createCheckout = async (
   const txRef = `tx-${applicationId}-${Date.now()}`;
 
   // 3. Create Payment record
-  const platformCommission = Number(application.proposedPrice) * 0.1; // 10% commission
+  const platformCommission =
+    Number(application.proposedPrice) * PLATFORM_COMMISSION_RATE;
   const amountToPay = Number(application.proposedPrice);
 
   await prisma.payment.create({
@@ -73,7 +75,7 @@ export const createCheckout = async (
     env.CHAPA_CALLBACK_URL ||
     `${env.FRONTEND_URL.replace("localhost", "host.docker.internal")}/api/payments/webhook`;
 
-  const chapaRes = await ChapaClient.initializeCheckout({
+  const chapaRes = await chapaClient.initializeCheckout({
     amount: amountToPay,
     currency: "ETB",
     txRef,
@@ -90,51 +92,4 @@ export const createCheckout = async (
     checkoutUrl: chapaRes.data?.checkout_url,
     txRef,
   };
-};
-
-export const handleSuccessfulPayment = async (txRef: string) => {
-  // 1. Find the pending payment
-  const payment = await prisma.payment.findUnique({
-    where: { txRef },
-  });
-
-  if (!payment) {
-    throw new Error("Payment not found");
-  }
-
-  if (payment.status === PaymentStatus.PAID) {
-    return { success: true, message: "Payment already processed" };
-  }
-
-  // 2. Verify payment with Chapa
-  const verification = await ChapaClient.verifyPayment(txRef);
-  if (
-    verification.status !== "success" ||
-    verification.data?.status !== "success"
-  ) {
-    throw new Error("Payment verification failed at Chapa");
-  }
-
-  // 3. Database Transaction: Update Payment and orchestrate Domain Logic
-  const result = await prisma.$transaction(async (tx) => {
-    // Update payment
-    const updatedPayment = await tx.payment.update({
-      where: { id: payment.id },
-      data: { status: PaymentStatus.PAID },
-    });
-
-    // Delegate domain state transitions to Application Service
-    const { acceptedApp, assignedJob } = await acceptAndAssignJob(
-      tx,
-      payment.applicationId,
-    );
-
-    return {
-      payment: updatedPayment,
-      application: acceptedApp,
-      job: assignedJob,
-    };
-  });
-
-  return result;
 };
