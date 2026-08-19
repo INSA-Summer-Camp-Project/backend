@@ -4,7 +4,7 @@ import app from "@/app";
 import { prisma } from "@/lib/prisma";
 import { registerUser, generateTokens } from "@/services/auth.service";
 import type { UserPublicDto } from "@/dtos/auth.dto";
-import { JobSource, JobStatus } from "@prisma/client";
+import { JobSource, JobStatus, ReviewerRole } from "@prisma/client";
 
 async function switchRole(
   userId: string,
@@ -16,7 +16,7 @@ async function switchRole(
   });
 }
 
-describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
+describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () => {
   let customerUser: UserPublicDto;
   let customerToken: string;
 
@@ -24,10 +24,11 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
   let customerTokenB: string;
 
   let workerUser: UserPublicDto;
-  let _workerToken: string;
+  let workerToken: string;
 
   let categoryId: string;
   let workerId: string;
+  let customerProfileId: string;
   let completedJobId: string;
 
   beforeEach(async () => {
@@ -58,6 +59,11 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
     await switchRole(customerUser.id, "CUSTOMER");
     customerToken = generateTokens(customerUser.id, "USER").accessToken;
 
+    const custProf = await prisma.customerProfile.findUniqueOrThrow({
+      where: { userId: customerUser.id },
+    });
+    customerProfileId = custProf.id;
+
     // Customer B
     customerUserB = await registerUser({
       name: "Bob Customer",
@@ -72,17 +78,13 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
       role: "WORKER",
     });
     await switchRole(workerUser.id, "WORKER");
-    _workerToken = generateTokens(workerUser.id, "USER").accessToken;
+    workerToken = generateTokens(workerUser.id, "USER").accessToken;
     workerId = workerUser.worker!.id;
 
     // Create a completed job for Customer A & Worker
-    const customerProfile = await prisma.customerProfile.findUniqueOrThrow({
-      where: { userId: customerUser.id },
-    });
-
     const job = await prisma.job.create({
       data: {
-        customerId: customerProfile.id,
+        customerId: customerProfileId,
         categoryId,
         title: "Completed Plumbing Job",
         description: "Kitchen sink repair completed successfully",
@@ -96,10 +98,10 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 1. POST /api/v1/reviews
+  // 1. POST /api/v1/reviews — Bidirectional Submissions
   // -------------------------------------------------------------------------
-  describe("POST /api/v1/reviews — submit review", () => {
-    it("Customer can submit a review for a completed job contract", async () => {
+  describe("POST /api/v1/reviews — submit review (Bidirectional)", () => {
+    it("Customer can submit a review for a worker on a completed job", async () => {
       const res = await request(app)
         .post("/api/v1/reviews")
         .set("Authorization", `Bearer ${customerToken}`)
@@ -112,13 +114,58 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.rating).toBe(5);
-      expect(res.body.data.comment).toBe("Excellent service and quick repair!");
+      expect(res.body.data.reviewerRole).toBe("CUSTOMER_TO_WORKER");
 
       // Verify Worker.ratingAvg updated
       const worker = await prisma.worker.findUnique({
         where: { id: workerId },
       });
       expect(Number(worker?.ratingAvg)).toBe(5.0);
+    });
+
+    it("Worker can submit a review for a customer on a completed job", async () => {
+      const res = await request(app)
+        .post("/api/v1/reviews")
+        .set("Authorization", `Bearer ${workerToken}`)
+        .send({
+          jobId: completedJobId,
+          rating: 5,
+          comment: "Great customer! Clear communication and prompt payment.",
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.rating).toBe(5);
+      expect(res.body.data.reviewerRole).toBe("WORKER_TO_CUSTOMER");
+
+      // Verify CustomerProfile.ratingAvg updated
+      const customer = await prisma.customerProfile.findUnique({
+        where: { id: customerProfileId },
+      });
+      expect(Number(customer?.ratingAvg)).toBe(5.0);
+    });
+
+    it("Both Customer AND Worker can submit reviews for the same completed job contract", async () => {
+      // Customer reviews worker
+      const resCust = await request(app)
+        .post("/api/v1/reviews")
+        .set("Authorization", `Bearer ${customerToken}`)
+        .send({ jobId: completedJobId, rating: 5 });
+
+      expect(resCust.status).toBe(201);
+
+      // Worker reviews customer on same job
+      const resWrk = await request(app)
+        .post("/api/v1/reviews")
+        .set("Authorization", `Bearer ${workerToken}`)
+        .send({ jobId: completedJobId, rating: 4 });
+
+      expect(resWrk.status).toBe(201);
+
+      const reviews = await prisma.review.findMany({
+        where: { jobId: completedJobId },
+      });
+      expect(reviews.length).toBe(2);
     });
 
     it("Validation: rejects ratings outside 1–5 or non-integer ratings", async () => {
@@ -154,13 +201,9 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
     });
 
     it("Job Completion Invariant: rejects reviews on non-completed jobs (400 Bad Request)", async () => {
-      const customerProfile = await prisma.customerProfile.findUniqueOrThrow({
-        where: { userId: customerUser.id },
-      });
-
       const openJob = await prisma.job.create({
         data: {
-          customerId: customerProfile.id,
+          customerId: customerProfileId,
           categoryId,
           title: "In Progress Job",
           description: "Work currently underway",
@@ -183,7 +226,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
       expect(res.body.error.message).toMatch(/completed jobs/i);
     });
 
-    it("Contract Participation Invariant: non-owner customer cannot review (403 Forbidden)", async () => {
+    it("Contract Participation Invariant: non-participant cannot review (403 Forbidden)", async () => {
       const res = await request(app)
         .post("/api/v1/reviews")
         .set("Authorization", `Bearer ${customerTokenB}`)
@@ -195,7 +238,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
       expect(res.status).toBe(403);
     });
 
-    it("Unique Contract Review Guard: reject duplicate review submission (409 Conflict)", async () => {
+    it("Unique Contract Review Guard per role: reject duplicate review by same party (409 Conflict)", async () => {
       await request(app)
         .post("/api/v1/reviews")
         .set("Authorization", `Bearer ${customerToken}`)
@@ -219,7 +262,6 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
     });
 
     it("Anti-Self-Review Guard: user cannot review their own worker profile", async () => {
-      // Register user who is both Customer and Worker
       const comboUser = await registerUser({
         name: "Combo User",
         role: "WORKER",
@@ -253,7 +295,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.error.message).toMatch(/own worker/i);
+      expect(res.body.error.message).toMatch(/own contract/i);
     });
   });
 
@@ -261,8 +303,8 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
   // 2. Rating Recalculation & CRUD (PUT / DELETE / GET)
   // -------------------------------------------------------------------------
   describe("Review Updates, Deletions & Average Synchronization", () => {
-    it("Updates worker ratingAvg correctly across multiple reviews", async () => {
-      // 1st review by Customer A -> 5 stars
+    it("Updates worker and customer ratingAvg correctly across multiple reviews", async () => {
+      // 1st review by Customer A -> 5 stars to Worker
       await request(app)
         .post("/api/v1/reviews")
         .set("Authorization", `Bearer ${customerToken}`)
@@ -288,18 +330,28 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
         },
       });
 
-      // 2nd review by Customer B -> 3 stars
+      // 2nd review by Customer B -> 3 stars to Worker
       await request(app)
         .post("/api/v1/reviews")
         .set("Authorization", `Bearer ${customerTokenB}`)
         .send({ jobId: jobB.id, rating: 3 });
 
       worker = await prisma.worker.findUnique({ where: { id: workerId } });
-      // Avg of 5 and 3 = 4.0
       expect(Number(worker?.ratingAvg)).toBe(4.0);
+
+      // Worker reviews Customer A -> 4 stars
+      await request(app)
+        .post("/api/v1/reviews")
+        .set("Authorization", `Bearer ${workerToken}`)
+        .send({ jobId: completedJobId, rating: 4 });
+
+      const custA = await prisma.customerProfile.findUnique({
+        where: { id: customerProfileId },
+      });
+      expect(Number(custA?.ratingAvg)).toBe(4.0);
     });
 
-    it("PUT /api/v1/reviews/:id — updates review and recalculates worker ratingAvg within 48h", async () => {
+    it("PUT /api/v1/reviews/:id — updates review and recalculates average within 48h", async () => {
       const createRes = await request(app)
         .post("/api/v1/reviews")
         .set("Authorization", `Bearer ${customerToken}`)
@@ -329,7 +381,6 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
 
       const reviewId = createRes.body.data.id;
 
-      // Mock createdAt to 50 hours ago
       const fiftyHoursAgo = new Date(Date.now() - 50 * 60 * 60 * 1000);
       await prisma.review.update({
         where: { id: reviewId },
@@ -345,7 +396,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
       expect(updateRes.body.error.message).toMatch(/edit window has expired/i);
     });
 
-    it("DELETE /api/v1/reviews/:id — removes review and recalculates worker ratingAvg", async () => {
+    it("DELETE /api/v1/reviews/:id — removes review and recalculates ratingAvg", async () => {
       const createRes = await request(app)
         .post("/api/v1/reviews")
         .set("Authorization", `Bearer ${customerToken}`)
@@ -379,7 +430,6 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
         where: { userId: customerUserB.id },
       });
 
-      // Create 5 completed jobs total (2 for Customer A, 3 for Customer B)
       for (let i = 0; i < 2; i++) {
         const j = await prisma.job.create({
           data: {
@@ -398,6 +448,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
             jobId: j.id,
             customerId: customerProfileA.id,
             workerId,
+            reviewerRole: ReviewerRole.CUSTOMER_TO_WORKER,
             rating: 5,
             comment: "Great!",
           },
@@ -422,13 +473,13 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
             jobId: j.id,
             customerId: customerProfileB.id,
             workerId,
+            reviewerRole: ReviewerRole.CUSTOMER_TO_WORKER,
             rating: 5,
             comment: "Superb!",
           },
         });
       }
 
-      // Update worker ratingAvg
       await prisma.worker.update({
         where: { id: workerId },
         data: { ratingAvg: 5.0 },
@@ -442,15 +493,45 @@ describe("Phase 5 — Ratings, Reviews & Reputation System", () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.totalReviews).toBe(5);
       expect(res.body.data.distribution["5"]).toBe(5);
-      expect(res.body.data.metrics.completedJobs).toBe(6); // 1 from beforeEach + 5 here
+      expect(res.body.data.metrics.completedJobs).toBe(6);
       expect(res.body.data.metrics.jobCompletionRate).toBe(100.0);
-      expect(res.body.data.metrics.repeatCustomers).toBe(2); // Both customer A and B have >1 completed job
+      expect(res.body.data.metrics.repeatCustomers).toBe(2);
       expect(res.body.data.badges).toContain("HIGH_COMPLETION");
     });
   });
 
   // -------------------------------------------------------------------------
-  // 4. GET /api/v1/reviews/my & GET /api/v1/workers/:id/reviews
+  // 4. GET /api/v1/customers/:id/reviews (Public Customer Reviews)
+  // -------------------------------------------------------------------------
+  describe("GET /api/v1/customers/:id/reviews — public customer reviews", () => {
+    it("Returns reviews submitted by workers for a specific customer", async () => {
+      await request(app)
+        .post("/api/v1/reviews")
+        .set("Authorization", `Bearer ${workerToken}`)
+        .send({
+          jobId: completedJobId,
+          rating: 5,
+          comment: "Great customer! Clear instructions and fast payment.",
+        });
+
+      const res = await request(app).get(
+        `/api/v1/customers/${customerProfileId}/reviews`,
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0].rating).toBe(5);
+      expect(res.body.data[0].comment).toBe(
+        "Great customer! Clear instructions and fast payment.",
+      );
+      expect(res.body.data[0].worker.id).toBe(workerId);
+      expect(res.body.data[0].job.id).toBe(completedJobId);
+      expect(res.body.meta.total).toBe(1);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 5. GET /api/v1/reviews/my & GET /api/v1/workers/:id/reviews
   // -------------------------------------------------------------------------
   describe("Review Listing Endpoints", () => {
     it("GET /api/v1/workers/:id/reviews — returns paginated reviews for worker", async () => {
