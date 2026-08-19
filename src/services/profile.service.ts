@@ -14,13 +14,10 @@ const workerProfileSelect = {
   id: true,
   userId: true,
   bio: true,
-  experience: true,
-  baseRate: true,
-  averageRating: true,
-  profileImageUrl: true,
-  profileImagePublicId: true,
-  verifiedJobCount: true,
-  verifiedEarningsTotal: true,
+  experienceYears: true,
+  paymentRate: true,
+  ratingAvg: true,
+  profilePhoto: true,
   createdAt: true,
   updatedAt: true,
   user: {
@@ -50,20 +47,20 @@ export const createWorkerProfile = async (
 ) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, workerProfile: { select: { id: true } } },
+    select: { id: true, worker: { select: { id: true } } },
   });
 
   if (!user) {
     throw new NotFoundError("User not found");
   }
 
-  if (user.workerProfile) {
+  if (user.worker) {
     throw new ConflictError("Worker profile already exists for this user");
   }
 
-  const categories = await prisma.serviceCategory.findMany({
+  const categories = await prisma.category.findMany({
     where: { id: { in: dto.categoryIds } },
-    select: { id: true },
+    select: { id: true, name: true },
   });
 
   if (categories.length !== dto.categoryIds.length) {
@@ -73,15 +70,18 @@ export const createWorkerProfile = async (
   }
 
   return prisma.$transaction(async (tx) => {
-    const profile = await tx.workerProfile.create({
+    const profile = await tx.worker.create({
       data: {
         userId,
         bio: dto.bio,
-        experience: dto.experience,
-        baseRate: dto.baseRate ? dto.baseRate : null,
+        experienceYears: dto.experience
+          ? Number.parseInt(dto.experience, 10)
+          : 0,
+        paymentRate: dto.baseRate ? dto.baseRate : null,
         services: {
-          create: dto.categoryIds.map((categoryId) => ({
-            categoryId,
+          create: categories.map((category) => ({
+            categoryId: category.id,
+            name: category.name,
           })),
         },
       },
@@ -92,7 +92,7 @@ export const createWorkerProfile = async (
       data: { lastActiveRole: "WORKER" },
     });
 
-    return tx.workerProfile.findUnique({
+    return tx.worker.findUnique({
       where: { id: profile.id },
       select: workerProfileSelect,
     });
@@ -103,7 +103,7 @@ export const addPortfolioItem = async (
   userId: string,
   dto: CreatePortfolioItemDto,
 ) => {
-  const worker = await prisma.workerProfile.findUnique({
+  const worker = await prisma.worker.findUnique({
     where: { userId },
     select: { id: true },
   });
@@ -114,13 +114,12 @@ export const addPortfolioItem = async (
     );
   }
 
-  return prisma.portfolioItem.create({
+  return prisma.portfolio.create({
     data: {
       workerId: worker.id,
       title: dto.title,
       description: dto.description,
       imageUrl: dto.imageUrl,
-      imagePublicId: dto.imagePublicId,
     },
   });
 };
@@ -129,7 +128,7 @@ export const addCertificate = async (
   userId: string,
   dto: CreateCertificateDto,
 ) => {
-  const worker = await prisma.workerProfile.findUnique({
+  const worker = await prisma.worker.findUnique({
     where: { userId },
     select: { id: true },
   });
@@ -145,7 +144,6 @@ export const addCertificate = async (
       workerId: worker.id,
       title: dto.title,
       fileUrl: dto.fileUrl,
-      filePublicId: dto.filePublicId,
     },
   });
 };

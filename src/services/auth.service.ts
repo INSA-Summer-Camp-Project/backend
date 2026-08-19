@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import type { SystemRole, ActiveRole } from "@prisma/client";
+import type { ActiveRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/config/env";
 import { BadRequestError, NotFoundError } from "@/middlewares/error.middleware";
@@ -7,6 +7,7 @@ import type {
   UserPublicDto,
   AuthTokensDto,
   LoginResponseDto,
+  RegisterUserDto,
 } from "@/dtos/auth.dto";
 
 const userSelect = {
@@ -24,9 +25,12 @@ const userSelect = {
       updatedAt: true,
     },
   },
-  workerProfile: {
+  worker: {
     select: {
       id: true,
+      bio: true,
+      experienceYears: true,
+      ratingAvg: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -35,10 +39,7 @@ const userSelect = {
 
 type JwtExpiresIn = NonNullable<jwt.SignOptions["expiresIn"]>;
 
-export const generateTokens = (
-  userId: string,
-  role: SystemRole,
-): AuthTokensDto => {
+export const generateTokens = (userId: string, role: string): AuthTokensDto => {
   const accessOptions: jwt.SignOptions = {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as JwtExpiresIn,
   };
@@ -64,7 +65,7 @@ export const getCurrentUser = async (
     throw new NotFoundError("User not found");
   }
 
-  return user as UserPublicDto;
+  return user as unknown as UserPublicDto;
 };
 
 export const updateActiveRole = async (
@@ -75,7 +76,7 @@ export const updateActiveRole = async (
     where: { id: userId },
     select: {
       id: true,
-      workerProfile: { select: { id: true } },
+      worker: { select: { id: true } },
     },
   });
 
@@ -83,7 +84,7 @@ export const updateActiveRole = async (
     throw new NotFoundError("User not found");
   }
 
-  if (activeRole === "WORKER" && !user.workerProfile) {
+  if (activeRole === "WORKER" && !user.worker) {
     throw new BadRequestError(
       "Cannot switch to WORKER role without a worker profile.",
     );
@@ -95,7 +96,37 @@ export const updateActiveRole = async (
     select: userSelect,
   });
 
-  return updatedUser as UserPublicDto;
+  return updatedUser as unknown as UserPublicDto;
+};
+
+export const registerUser = async (
+  data: RegisterUserDto,
+): Promise<UserPublicDto> => {
+  const isWorker = data.role === "WORKER";
+  const user = await prisma.user.create({
+    data: {
+      name: data.name,
+      telegramId:
+        data.telegramId ??
+        `tg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      systemRole: data.systemRole ?? "USER",
+      lastActiveRole: data.role ?? "CUSTOMER",
+      customerProfile: {
+        create: {},
+      },
+      ...(isWorker && {
+        worker: {
+          create: {
+            experienceYears: 0,
+            ratingAvg: 0.0,
+          },
+        },
+      }),
+    },
+    select: userSelect,
+  });
+
+  return user as unknown as UserPublicDto;
 };
 
 export const loginWithTelegram = async (telegram: {
@@ -137,7 +168,7 @@ export const loginWithTelegram = async (telegram: {
   const tokens = generateTokens(user.id, user.systemRole);
 
   return {
-    user: user as UserPublicDto,
+    user: user as unknown as UserPublicDto,
     tokens,
   };
 };

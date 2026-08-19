@@ -1,18 +1,31 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { NotFoundError } from "@/middlewares/error.middleware";
-import type { WorkerQueryDto } from "@/dtos/worker.dto";
+import { NotFoundError, ForbiddenError } from "@/middlewares/error.middleware";
+import type {
+  WorkerQueryDto,
+  UpdateWorkerProfileDto,
+  CreateWorkerServiceDto,
+  UpdateWorkerServiceDto,
+  CreatePortfolioDto,
+  CreateCertificateDto,
+} from "@/dtos/worker.dto";
+
+const defaultUserSelect = {
+  id: true,
+  name: true,
+  telegramId: true,
+  email: true,
+  phone: true,
+};
 
 const workerListSelect = {
   id: true,
   userId: true,
   bio: true,
-  experience: true,
-  baseRate: true,
-  averageRating: true,
-  profileImageUrl: true,
-  verifiedJobCount: true,
-  verifiedEarningsTotal: true,
+  experienceYears: true,
+  paymentRate: true,
+  ratingAvg: true,
+  profilePhoto: true,
   createdAt: true,
   user: {
     select: {
@@ -35,15 +48,13 @@ const workerListSelect = {
 
 const workerDetailSelect = {
   ...workerListSelect,
-  profileImagePublicId: true,
   updatedAt: true,
-  portfolioItems: {
+  portfolios: {
     select: {
       id: true,
       title: true,
       description: true,
       imageUrl: true,
-      imagePublicId: true,
       createdAt: true,
     },
   },
@@ -52,8 +63,7 @@ const workerDetailSelect = {
       id: true,
       title: true,
       fileUrl: true,
-      filePublicId: true,
-      createdAt: true,
+      issuedDate: true,
     },
   },
   reviews: {
@@ -77,11 +87,20 @@ const workerDetailSelect = {
   },
 };
 
+const getWorkerOrThrow = async (userId: string) => {
+  const worker = await prisma.worker.findUnique({
+    where: { userId },
+  });
+
+  if (!worker) {
+    throw new NotFoundError("Worker profile not found");
+  }
+
+  return worker;
+};
+
 /**
  * Retrieves a paginated list of worker profiles based on search and filter parameters.
- * Supports filtering by category ID, keyword search, rating threshold, rate range, and sorting.
- *
- * @param query - Validated WorkerQueryDto containing search criteria & pagination parameters
  */
 export const getWorkers = async (query: WorkerQueryDto) => {
   const {
@@ -95,10 +114,8 @@ export const getWorkers = async (query: WorkerQueryDto) => {
     limit,
   } = query;
 
-  // Build dynamic Prisma WHERE conditions array
-  const AND: Prisma.WorkerProfileWhereInput[] = [];
+  const AND: Prisma.WorkerWhereInput[] = [];
 
-  // Filter 1: Service Category
   if (categoryId) {
     AND.push({
       services: {
@@ -107,80 +124,65 @@ export const getWorkers = async (query: WorkerQueryDto) => {
     });
   }
 
-  // Filter 2: Keyword search across worker bio, experience, and associated user name
-  if (search && search.trim()) {
+  if (search?.trim()) {
     const trimmed = search.trim();
     AND.push({
       OR: [
         { bio: { contains: trimmed, mode: "insensitive" } },
-        { experience: { contains: trimmed, mode: "insensitive" } },
         { user: { name: { contains: trimmed, mode: "insensitive" } } },
       ],
     });
   }
 
-  // Filter 3: Minimum rating threshold
   if (minRating !== undefined) {
     AND.push({
-      averageRating: { gte: minRating },
+      ratingAvg: { gte: minRating },
     });
   }
 
-  // Filter 4: Base rate minimum threshold
   if (minRate !== undefined) {
     AND.push({
-      baseRate: { gte: minRate },
+      paymentRate: { gte: minRate },
     });
   }
 
-  // Filter 5: Base rate maximum threshold
   if (maxRate !== undefined) {
     AND.push({
-      baseRate: { lte: maxRate },
+      paymentRate: { lte: maxRate },
     });
   }
 
-  const where: Prisma.WorkerProfileWhereInput = AND.length > 0 ? { AND } : {};
+  const where: Prisma.WorkerWhereInput = AND.length > 0 ? { AND } : {};
 
-  // Build dynamic Prisma ORDER BY sorting clause
-  let orderBy: Prisma.WorkerProfileOrderByWithRelationInput[];
+  let orderBy: Prisma.WorkerOrderByWithRelationInput[];
 
   switch (sortBy) {
-    case "jobs":
-      orderBy = [{ verifiedJobCount: "desc" }, { averageRating: "desc" }];
-      break;
     case "newest":
       orderBy = [{ createdAt: "desc" }];
       break;
     case "rate_asc":
-      orderBy = [{ baseRate: "asc" }, { averageRating: "desc" }];
+      orderBy = [{ paymentRate: "asc" }, { ratingAvg: "desc" }];
       break;
     case "rate_desc":
-      orderBy = [{ baseRate: "desc" }, { averageRating: "desc" }];
+      orderBy = [{ paymentRate: "desc" }, { ratingAvg: "desc" }];
       break;
     case "rating":
     default:
-      orderBy = [
-        { averageRating: "desc" },
-        { verifiedJobCount: "desc" },
-        { createdAt: "desc" },
-      ];
+      orderBy = [{ ratingAvg: "desc" }, { createdAt: "desc" }];
       break;
   }
 
-  // Calculate SQL offset skip value for pagination
   const skip = (page - 1) * limit;
 
-  // Execute database count and query concurrently
   const [workers, total] = await Promise.all([
-    prisma.workerProfile.findMany({
+    prisma.worker.findMany({
       where,
       select: workerListSelect,
       orderBy,
       skip,
       take: limit,
     }),
-    prisma.workerProfile.count({ where }),
+    prisma.worker.count({ where }),
   ]);
 
   const totalPages = Math.ceil(total / limit);
@@ -197,7 +199,7 @@ export const getWorkers = async (query: WorkerQueryDto) => {
 };
 
 export const getWorkerById = async (workerId: string) => {
-  const worker = await prisma.workerProfile.findFirst({
+  const worker = await prisma.worker.findFirst({
     where: {
       OR: [{ id: workerId }, { userId: workerId }],
     },
@@ -205,8 +207,262 @@ export const getWorkerById = async (workerId: string) => {
   });
 
   if (!worker) {
+    throw new NotFoundError("Worker not found");
+  }
+
+  return worker;
+};
+
+// --- Worker Profile ---
+export const getMyProfile = async (userId: string) => {
+  const worker = await prisma.worker.findUnique({
+    where: { userId },
+    include: {
+      services: {
+        include: {
+          category: true,
+        },
+      },
+      portfolios: true,
+      certificates: true,
+      user: {
+        select: defaultUserSelect,
+      },
+    },
+  });
+
+  if (!worker) {
     throw new NotFoundError("Worker profile not found");
   }
 
   return worker;
+};
+
+export const updateMyProfile = async (
+  userId: string,
+  data: UpdateWorkerProfileDto,
+) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  return prisma.worker.update({
+    where: { id: worker.id },
+    data: {
+      ...(data.bio !== undefined && { bio: data.bio }),
+      ...(data.experienceYears !== undefined && {
+        experienceYears: data.experienceYears,
+      }),
+      ...(data.profilePhoto !== undefined && {
+        profilePhoto: data.profilePhoto,
+      }),
+      ...(data.paymentRate !== undefined && {
+        paymentRate: data.paymentRate,
+      }),
+      ...(data.availability !== undefined && {
+        availability: data.availability,
+      }),
+    },
+    include: {
+      services: {
+        include: {
+          category: true,
+        },
+      },
+      portfolios: true,
+      certificates: true,
+      user: {
+        select: defaultUserSelect,
+      },
+    },
+  });
+};
+
+export const getPublicProfile = async (workerId: string) => {
+  return getWorkerById(workerId);
+};
+
+// --- Services ---
+export const getMyServices = async (userId: string) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  return prisma.service.findMany({
+    where: { providerId: worker.id },
+    include: {
+      category: true,
+    },
+  });
+};
+
+export const createService = async (
+  userId: string,
+  data: CreateWorkerServiceDto,
+) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  const category = await prisma.category.findUnique({
+    where: { id: data.categoryId },
+  });
+
+  if (!category) {
+    throw new NotFoundError("Category not found");
+  }
+
+  return prisma.service.create({
+    data: {
+      providerId: worker.id,
+      categoryId: data.categoryId,
+      name: data.name,
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.price !== undefined && { price: data.price }),
+    },
+    include: {
+      category: true,
+    },
+  });
+};
+
+export const updateService = async (
+  userId: string,
+  serviceId: string,
+  data: UpdateWorkerServiceDto,
+) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId },
+  });
+
+  if (!service) {
+    throw new NotFoundError("Service not found");
+  }
+
+  if (service.providerId !== worker.id) {
+    throw new ForbiddenError("Access denied: You do not own this service");
+  }
+
+  if (data.categoryId) {
+    const category = await prisma.category.findUnique({
+      where: { id: data.categoryId },
+    });
+    if (!category) {
+      throw new NotFoundError("Category not found");
+    }
+  }
+
+  return prisma.service.update({
+    where: { id: serviceId },
+    data: {
+      ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.price !== undefined && { price: data.price }),
+    },
+    include: {
+      category: true,
+    },
+  });
+};
+
+export const deleteService = async (userId: string, serviceId: string) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId },
+  });
+
+  if (!service) {
+    throw new NotFoundError("Service not found");
+  }
+
+  if (service.providerId !== worker.id) {
+    throw new ForbiddenError("Access denied: You do not own this service");
+  }
+
+  await prisma.service.delete({
+    where: { id: serviceId },
+  });
+
+  return { message: "Service deleted successfully" };
+};
+
+// --- Portfolios ---
+export const createPortfolio = async (
+  userId: string,
+  data: CreatePortfolioDto,
+) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  return prisma.portfolio.create({
+    data: {
+      workerId: worker.id,
+      title: data.title,
+      imageUrl: data.imageUrl,
+      ...(data.description !== undefined && { description: data.description }),
+    },
+  });
+};
+
+export const deletePortfolio = async (userId: string, portfolioId: string) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  const portfolio = await prisma.portfolio.findUnique({
+    where: { id: portfolioId },
+  });
+
+  if (!portfolio) {
+    throw new NotFoundError("Portfolio item not found");
+  }
+
+  if (portfolio.workerId !== worker.id) {
+    throw new ForbiddenError(
+      "Access denied: You do not own this portfolio item",
+    );
+  }
+
+  await prisma.portfolio.delete({
+    where: { id: portfolioId },
+  });
+
+  return { message: "Portfolio item deleted successfully" };
+};
+
+// --- Certificates ---
+export const createCertificate = async (
+  userId: string,
+  data: CreateCertificateDto,
+) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  return prisma.certificate.create({
+    data: {
+      workerId: worker.id,
+      title: data.title,
+      fileUrl: data.fileUrl,
+      issuedDate: data.issuedDate ? new Date(data.issuedDate) : null,
+    },
+  });
+};
+
+export const deleteCertificate = async (
+  userId: string,
+  certificateId: string,
+) => {
+  const worker = await getWorkerOrThrow(userId);
+
+  const certificate = await prisma.certificate.findUnique({
+    where: { id: certificateId },
+  });
+
+  if (!certificate) {
+    throw new NotFoundError("Certificate not found");
+  }
+
+  if (certificate.workerId !== worker.id) {
+    throw new ForbiddenError("Access denied: You do not own this certificate");
+  }
+
+  await prisma.certificate.delete({
+    where: { id: certificateId },
+  });
+
+  return { message: "Certificate deleted successfully" };
 };

@@ -5,7 +5,10 @@ import { z } from "zod";
  */
 export const WorkerQueryDtoSchema = z.object({
   /** Filter workers belonging to a specific service category UUID */
-  categoryId: z.string().uuid("Invalid category ID format").optional(),
+  categoryId: z
+    .string()
+    .uuid({ message: "Invalid category ID format" })
+    .optional(),
 
   /** Keyword search across worker bio, experience, and user name */
   search: z.string().min(1, "Search query must not be empty").optional(),
@@ -47,3 +50,57 @@ export const WorkerQueryDtoSchema = z.object({
 });
 
 export type WorkerQueryDto = z.infer<typeof WorkerQueryDtoSchema>;
+
+export const UpdateWorkerProfileSchema = z.object({
+  bio: z.string().optional(),
+  experienceYears: z
+    .number()
+    .min(0, "Experience years must be non-negative")
+    .optional(),
+  profilePhoto: z
+    .string()
+    .url({ message: "Profile photo must be a valid URL" })
+    .optional(),
+  paymentRate: z.number().positive("Payment rate must be positive").optional(),
+  availability: z.string().optional(),
+});
+
+export const CreateWorkerServiceSchema = z.object({
+  categoryId: z.string().uuid({ message: "Invalid category ID format" }),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  description: z.string().optional(),
+  price: z.number().positive("Price must be positive").optional(),
+});
+
+export const UpdateWorkerServiceSchema = z.object({
+  categoryId: z
+    .string()
+    .uuid({ message: "Invalid category ID format" })
+    .optional(),
+  name: z.string().min(2, "Name must be at least 2 characters").optional(),
+  description: z.string().optional(),
+  price: z.number().positive("Price must be positive").optional(),
+});
+
+export const CreatePortfolioSchema = z.object({
+  title: z.string().min(2, "Title must be at least 2 characters"),
+  description: z.string().optional(),
+  imageUrl: z.string().url({ message: "Image URL must be a valid URL" }),
+});
+
+export const CreateCertificateSchema = z.object({
+  title: z.string().min(2, "Title must be at least 2 characters"),
+  fileUrl: z.string().url({ message: "File URL must be a valid URL" }),
+  issuedDate: z
+    .string()
+    .refine((val) => !Number.isNaN(Date.parse(val)), {
+      message: "Issued date must be a valid ISO 8601 date string",
+    })
+    .optional(),
+});
+
+export type UpdateWorkerProfileDto = z.infer<typeof UpdateWorkerProfileSchema>;
+export type CreateWorkerServiceDto = z.infer<typeof CreateWorkerServiceSchema>;
+export type UpdateWorkerServiceDto = z.infer<typeof UpdateWorkerServiceSchema>;
+export type CreatePortfolioDto = z.infer<typeof CreatePortfolioSchema>;
+export type CreateCertificateDto = z.infer<typeof CreateCertificateSchema>;
