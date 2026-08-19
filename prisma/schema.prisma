@@ -19,6 +19,19 @@ enum ActiveRole {
   WORKER
 }
 
+enum Role {
+  CUSTOMER
+  WORKER
+  BUSINESS
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
 enum JobSource {
   MARKETPLACE
   DIRECT_HIRE
@@ -60,17 +73,32 @@ enum PaymentAccountStatus {
 
 model User {
   id             String      @id @default(uuid())
-  telegramId     String      @unique
+  telegramId     String?     @unique
   name           String
+  email          String?
+  phone          String?
+  passwordHash   String?
+  role           Role?       @default(CUSTOMER)
+  status         UserStatus? @default(ACTIVE)
   systemRole     SystemRole  @default(USER)
   lastActiveRole ActiveRole?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
   customerProfile CustomerProfile?
-  workerProfile   WorkerProfile?
+  customerLegacy  Customer?
+  worker          Worker?
 
   @@index([telegramId])
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CustomerProfile {
@@ -85,49 +113,78 @@ model CustomerProfile {
   reviews Review[]
 }
 
-model WorkerProfile {
-  id                    String   @id @default(uuid())
-  userId                String   @unique
-  bio                   String
-  experience            String
-  baseRate              Decimal?
-  averageRating         Float    @default(0)
-  profileImageUrl       String?
-  profileImagePublicId  String?
-  verifiedJobCount      Int      @default(0)
-  verifiedEarningsTotal Decimal  @default(0)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+model Worker {
+  id              String        @id @default(uuid())
+  userId          String        @unique @map("user_id")
+  bio             String?       @db.Text
+  experienceYears Int           @default(0) @map("experience_years")
+  profilePhoto    String?       @map("profile_photo")
+  paymentRate     Decimal?      @map("payment_rate") @db.Decimal(10, 2)
+  availability    String?
+  ratingAvg       Decimal       @default(0.00) @map("rating_avg") @db.Decimal(3, 2)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  services       WorkerService[]
-  targetedJobs   Job[]           @relation("DirectHires")
-  assignedJobs   Job[]           @relation("AssignedJobs")
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolios     Portfolio[]
+  certificates   Certificate[]
+  services       Service[]
+  targetedJobs   Job[]          @relation("DirectHires")
+  assignedJobs   Job[]          @relation("AssignedJobs")
   applications   Application[]
   reviews        Review[]
-  portfolioItems PortfolioItem[]
-  certificates   Certificate[]
   paymentAccount PaymentAccount?
+
+  @@map("workers")
 }
 
-model ServiceCategory {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?   @db.Text
+  services    Service[]
+  jobs        Job[]
 
-  workers WorkerService[]
-  jobs    Job[]
+  @@map("categories")
 }
 
-model WorkerService {
-  workerProfileId String
-  categoryId      String
+model Service {
+  id          String   @id @default(uuid())
+  categoryId  String   @map("category_id")
+  providerId  String   @map("provider_id")
+  name        String
+  description String?  @db.Text
+  price       Decimal? @db.Decimal(10, 2)
 
-  worker   WorkerProfile   @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
-  category ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  worker   Worker   @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
-  @@id([workerProfileId, categoryId])
+  @@map("services")
+}
+
+model Portfolio {
+  id          String   @id @default(uuid())
+  workerId    String   @map("worker_id")
+  title       String
+  description String?  @db.Text
+  imageUrl    String   @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@map("portfolios")
+}
+
+model Certificate {
+  id         String    @id @default(uuid())
+  workerId   String    @map("worker_id")
+  title      String
+  fileUrl    String    @map("file_url")
+  issuedDate DateTime? @map("issued_date") @db.Date
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@map("certificates")
 }
 
 model Job {
@@ -138,16 +195,16 @@ model Job {
   categoryId       String
   title            String
   description      String
-  budget           Decimal
+  budget           Decimal   @db.Decimal(10, 2)
   status           JobStatus @default(OPEN)
   assignedWorkerId String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  targetWorker   WorkerProfile?  @relation("DirectHires", fields: [targetWorkerId], references: [id], onDelete: SetNull)
-  category       ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  assignedWorker WorkerProfile?  @relation("AssignedJobs", fields: [assignedWorkerId], references: [id], onDelete: SetNull)
+  targetWorker   Worker?         @relation("DirectHires", fields: [targetWorkerId], references: [id], onDelete: SetNull)
+  category       Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  assignedWorker Worker?         @relation("AssignedJobs", fields: [assignedWorkerId], references: [id], onDelete: SetNull)
   applications   Application[]
   payments       Payment[]
   reviews        Review[]
@@ -157,25 +214,25 @@ model Application {
   id            String            @id @default(uuid())
   jobId         String
   workerId      String
-  proposedPrice Decimal
+  proposedPrice Decimal           @db.Decimal(10, 2)
   estimatedTime String
   status        ApplicationStatus @default(PENDING)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  job    Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  worker WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
   id                 String        @id @default(uuid())
   jobId              String
-  amount             Decimal
+  amount             Decimal       @db.Decimal(10, 2)
   currency           String        @default("ETB")
   method             PaymentMethod
   status             PaymentStatus @default(PENDING)
   txRef              String        @unique
-  platformCommission Decimal
+  platformCommission Decimal       @db.Decimal(10, 2)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -193,43 +250,18 @@ model Review {
   updatedAt  DateTime @updatedAt
 
   job      Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  worker   WorkerProfile   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  worker   Worker          @relation(fields: [workerId], references: [id], onDelete: Cascade)
   customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
-}
-
-model PortfolioItem {
-  id            String   @id @default(uuid())
-  workerId      String
-  title         String
-  description   String
-  imageUrl      String
-  imagePublicId String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  worker WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
-}
-
-model Certificate {
-  id           String   @id @default(uuid())
-  workerId     String
-  title        String
-  fileUrl      String
-  filePublicId String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  worker WorkerProfile @relation(fields: [workerId], references: [id], onDelete: Cascade)
 }
 
 model PaymentAccount {
   id                String               @id @default(uuid())
-  workerProfileId   String               @unique
+  workerProfileId   String               @unique @map("worker_id")
   provider          PaymentProvider
   providerAccountId String
   status            PaymentAccountStatus
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
-  workerProfile WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+  worker Worker @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
 }

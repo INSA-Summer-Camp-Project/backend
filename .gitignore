@@ -148,3 +148,6 @@ vite.config.ts.timestamp-*
 .claude
 .windsurf
 .agent
+
+#development-scripts
+scripts/

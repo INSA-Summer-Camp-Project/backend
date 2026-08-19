@@ -8,17 +8,33 @@ export const UpdateRoleDtoSchema = z.object({
 
 export type UpdateRoleDto = z.infer<typeof UpdateRoleDtoSchema>;
 
+export const RegisterUserDtoSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  telegramId: z.string().optional(),
+  role: z.enum(["CUSTOMER", "WORKER"]).optional(),
+  systemRole: z.enum(["USER", "ADMIN"]).optional(),
+});
+
+export type RegisterUserDto = z.infer<typeof RegisterUserDtoSchema>;
+
 // Response DTOs
 export interface UserPublicDto {
   id: string;
   name: string;
-  telegramId: string;
+  telegramId: string | null;
   systemRole: SystemRole;
   lastActiveRole: ActiveRole | null;
   createdAt: Date;
   updatedAt: Date;
   customerProfile?: { id: string; createdAt: Date; updatedAt: Date } | null;
-  workerProfile?: { id: string; createdAt: Date; updatedAt: Date } | null;
+  worker?: {
+    id: string;
+    bio?: string | null;
+    experienceYears?: number;
+    ratingAvg?: number | string;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
 }
 
 export interface AuthTokensDto {
