@@ -54,6 +54,11 @@ enum ApplicationStatus {
   WITHDRAWN
 }
 
+enum ReviewerRole {
+  CUSTOMER_TO_WORKER
+  WORKER_TO_CUSTOMER
+}
+
 enum PaymentMethod {
   CASH
   CHAPA
@@ -109,6 +114,7 @@ model CustomerProfile {
   id        String   @id @default(uuid())
   userId    String   @unique
   bio       String?
+  ratingAvg Decimal  @default(0.00) @map("rating_avg") @db.Decimal(3, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -253,19 +259,21 @@ model Payment {
 }
 
 model Review {
-  id         String   @id @default(uuid())
-  jobId      String   @unique
-  workerId   String
-  customerId String
-  rating     Int
-  comment    String?  @db.Text
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String       @id @default(uuid())
+  jobId        String
+  workerId     String
+  customerId   String
+  reviewerRole ReviewerRole
+  rating       Int
+  comment      String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   job      Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
   worker   Worker          @relation(fields: [workerId], references: [id], onDelete: Cascade)
   customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
+  @@unique([jobId, reviewerRole])
   @@index([workerId])
   @@index([customerId])
 }
