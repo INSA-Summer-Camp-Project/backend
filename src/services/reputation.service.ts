@@ -14,7 +14,7 @@ export const getWorkerReputation = async (workerId: string) => {
   // 1. Rating distribution
   const groupByRating = await prisma.review.groupBy({
     by: ["rating"],
-    where: { workerId },
+    where: { workerId, reviewerRole: "CUSTOMER_TO_WORKER" },
     _count: { rating: true },
   });
 

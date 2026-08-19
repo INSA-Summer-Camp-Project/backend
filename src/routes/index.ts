@@ -7,6 +7,7 @@ import searchRouter from "@/routes/search.routes";
 import jobRouter from "@/routes/job.routes";
 import applicationRouter from "@/routes/application.routes";
 import reviewRouter from "@/routes/review.routes";
+import customerRouter from "@/routes/customer.routes";
 
 const router: Router = Router();
 
@@ -15,6 +16,7 @@ router.use("/auth", authRouter);
 router.use("/categories", categoryRouter);
 router.use("/profiles", profileRouter);
 router.use("/workers", workerRouter);
+router.use("/customers", customerRouter);
 router.use("/search", searchRouter);
 router.use("/jobs", jobRouter);
 router.use("/applications", applicationRouter);

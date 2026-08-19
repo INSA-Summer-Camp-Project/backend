@@ -1,16 +1,15 @@
 import { Router } from "express";
 import * as reviewController from "@/controllers/review.controller";
-import { authenticate, requireActiveRole } from "@/middlewares/auth.middleware";
+import { authenticate } from "@/middlewares/auth.middleware";
 import { validate } from "@/middlewares/validate.middleware";
 import { createReviewSchema, updateReviewSchema } from "@/dtos/review.dto";
 
 const router: Router = Router();
 
-// Customer: submit a review for a completed job
+// Submit a review for a completed job (Customer -> Worker or Worker -> Customer)
 router.post(
   "/",
   authenticate,
-  requireActiveRole("CUSTOMER"),
   validate(createReviewSchema),
   reviewController.createReview,
 );
@@ -18,11 +17,10 @@ router.post(
 // Auth: get user's reviews (authored or received)
 router.get("/my", authenticate, reviewController.getMyReviews);
 
-// Customer: update an existing review within 48h
+// Update an existing review within 48h
 router.put(
   "/:id",
   authenticate,
-  requireActiveRole("CUSTOMER"),
   validate(updateReviewSchema),
   reviewController.updateReview,
 );

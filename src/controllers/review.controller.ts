@@ -4,7 +4,7 @@ import * as reputationService from "@/services/reputation.service";
 import { prisma } from "@/lib/prisma";
 
 // ---------------------------------------------------------------------------
-// POST /api/v1/reviews  — submit review for completed job
+// POST /api/v1/reviews — submit review for completed job
 // ---------------------------------------------------------------------------
 export const createReview = async (
   req: Request,
@@ -12,7 +12,17 @@ export const createReview = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const review = await reviewService.createReview(req.user!.id, req.body);
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { lastActiveRole: true },
+    });
+    const activeRole = user?.lastActiveRole || "CUSTOMER";
+
+    const review = await reviewService.createReview(
+      req.user!.id,
+      activeRole,
+      req.body,
+    );
     res.status(201).json({ success: true, data: review });
   } catch (err) {
     next(err);
@@ -20,7 +30,7 @@ export const createReview = async (
 };
 
 // ---------------------------------------------------------------------------
-// GET /api/v1/workers/:id/reviews  — public reviews for a worker
+// GET /api/v1/workers/:id/reviews — public reviews for a worker
 // ---------------------------------------------------------------------------
 export const getWorkerReviews = async (
   req: Request,
@@ -40,7 +50,27 @@ export const getWorkerReviews = async (
 };
 
 // ---------------------------------------------------------------------------
-// GET /api/v1/workers/:id/reputation  — public reputation analytics
+// GET /api/v1/customers/:id/reviews — public reviews for a customer
+// ---------------------------------------------------------------------------
+export const getCustomerReviews = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const customerId = String(req.params.id);
+    const result = await reviewService.getCustomerReviews(
+      customerId,
+      req.query as { page?: number; limit?: number },
+    );
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/workers/:id/reputation — public reputation analytics
 // ---------------------------------------------------------------------------
 export const getWorkerReputation = async (
   req: Request,
@@ -57,7 +87,7 @@ export const getWorkerReputation = async (
 };
 
 // ---------------------------------------------------------------------------
-// GET /api/v1/reviews/my  — user's reviews (authored or received)
+// GET /api/v1/reviews/my — user's reviews (authored or received)
 // ---------------------------------------------------------------------------
 export const getMyReviews = async (
   req: Request,
@@ -80,7 +110,7 @@ export const getMyReviews = async (
 };
 
 // ---------------------------------------------------------------------------
-// PUT /api/v1/reviews/:id  — update review within 48h
+// PUT /api/v1/reviews/:id — update review within 48h
 // ---------------------------------------------------------------------------
 export const updateReview = async (
   req: Request,
@@ -101,7 +131,7 @@ export const updateReview = async (
 };
 
 // ---------------------------------------------------------------------------
-// DELETE /api/v1/reviews/:id  — delete review (author or admin)
+// DELETE /api/v1/reviews/:id — delete review (author or admin)
 // ---------------------------------------------------------------------------
 export const deleteReview = async (
   req: Request,

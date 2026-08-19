@@ -1,4 +1,4 @@
-import type { Prisma, ActiveRole } from "@prisma/client";
+import type { Prisma, ActiveRole, ReviewerRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   NotFoundError,
@@ -13,14 +13,14 @@ import type {
 } from "@/dtos/review.dto";
 
 // ---------------------------------------------------------------------------
-// Helper: Recalculate Worker.ratingAvg atomically inside transaction
+// Helpers: Recalculate Average Ratings atomically inside transactions
 // ---------------------------------------------------------------------------
 export const recalculateWorkerRatingAvg = async (
   tx: Prisma.TransactionClient,
   workerId: string,
 ): Promise<number> => {
   const aggregate = await tx.review.aggregate({
-    where: { workerId },
+    where: { workerId, reviewerRole: "CUSTOMER_TO_WORKER" },
     _avg: { rating: true },
   });
 
@@ -35,17 +35,34 @@ export const recalculateWorkerRatingAvg = async (
   return ratingAvg;
 };
 
-// ---------------------------------------------------------------------------
-// 1. Submit a review for a completed job
-// ---------------------------------------------------------------------------
-export const createReview = async (userId: string, data: CreateReviewDto) => {
-  const customerProfile = await prisma.customerProfile.findUnique({
-    where: { userId },
+export const recalculateCustomerRatingAvg = async (
+  tx: Prisma.TransactionClient,
+  customerId: string,
+): Promise<number> => {
+  const aggregate = await tx.review.aggregate({
+    where: { customerId, reviewerRole: "WORKER_TO_CUSTOMER" },
+    _avg: { rating: true },
   });
-  if (!customerProfile) {
-    throw new ForbiddenError("Customer profile not found for this user");
-  }
 
+  const rawAvg = aggregate._avg.rating ?? 0;
+  const ratingAvg = Math.round(rawAvg * 100) / 100;
+
+  await tx.customerProfile.update({
+    where: { id: customerId },
+    data: { ratingAvg },
+  });
+
+  return ratingAvg;
+};
+
+// ---------------------------------------------------------------------------
+// 1. Submit a bidirectional review for a completed job
+// ---------------------------------------------------------------------------
+export const createReview = async (
+  userId: string,
+  activeRole: ActiveRole,
+  data: CreateReviewDto,
+) => {
   const job = await prisma.job.findUnique({
     where: { id: data.jobId },
     include: {
@@ -58,52 +75,76 @@ export const createReview = async (userId: string, data: CreateReviewDto) => {
     throw new NotFoundError("Job not found");
   }
 
-  // Job Completion Invariant
   if (job.status !== "COMPLETED") {
     throw new BadRequestError("Reviews are only permitted for completed jobs");
   }
 
-  // Contract Participation Invariant
-  if (job.customerId !== customerProfile.id) {
-    throw new ForbiddenError("You do not own this completed job contract");
-  }
   if (!job.assignedWorkerId || !job.assignedWorker) {
-    throw new BadRequestError("No worker was assigned to this completed job");
+    throw new BadRequestError("Job has no assigned worker");
   }
 
   // Anti-Self-Review Guard
   if (job.customer.userId === job.assignedWorker.userId) {
-    throw new BadRequestError("Cannot review your own worker profile");
+    throw new BadRequestError("Cannot review your own contract");
   }
 
-  // Unique Contract Review Guard
+  let reviewerRole: ReviewerRole;
+  const targetCustomerId = job.customerId;
+  const targetWorkerId = job.assignedWorkerId;
+
+  if (activeRole === "CUSTOMER") {
+    if (job.customer.userId !== userId) {
+      throw new ForbiddenError("You are not the customer for this job");
+    }
+    reviewerRole = "CUSTOMER_TO_WORKER";
+  } else if (activeRole === "WORKER") {
+    if (job.assignedWorker.userId !== userId) {
+      throw new ForbiddenError("You are not the assigned worker for this job");
+    }
+    reviewerRole = "WORKER_TO_CUSTOMER";
+  } else {
+    throw new ForbiddenError("Invalid active role");
+  }
+
+  // Unique Contract Review Guard for this role
   const existingReview = await prisma.review.findUnique({
-    where: { jobId: data.jobId },
+    where: {
+      jobId_reviewerRole: {
+        jobId: data.jobId,
+        reviewerRole,
+      },
+    },
   });
   if (existingReview) {
-    throw new ConflictError("A review has already been submitted for this job");
+    throw new ConflictError(
+      "A review has already been submitted for this job contract",
+    );
   }
 
-  // Atomic Transaction
   return prisma.$transaction(async (tx) => {
     const review = await tx.review.create({
       data: {
-        jobId: data.jobId,
-        customerId: customerProfile.id,
-        workerId: job.assignedWorkerId!,
+        jobId: job.id,
+        customerId: targetCustomerId,
+        workerId: targetWorkerId,
+        reviewerRole,
         rating: data.rating,
         comment: data.comment ?? null,
       },
     });
 
-    await recalculateWorkerRatingAvg(tx, job.assignedWorkerId!);
+    if (reviewerRole === "CUSTOMER_TO_WORKER") {
+      await recalculateWorkerRatingAvg(tx, targetWorkerId);
+    } else {
+      await recalculateCustomerRatingAvg(tx, targetCustomerId);
+    }
 
     return review;
   });
 };
 
 // ---------------------------------------------------------------------------
-// 2. Get public reviews for a worker
+// 2. Get public reviews for a worker (CUSTOMER_TO_WORKER)
 // ---------------------------------------------------------------------------
 export const getWorkerReviews = async (
   workerId: string,
@@ -114,7 +155,10 @@ export const getWorkerReviews = async (
     throw new NotFoundError("Worker not found");
   }
 
-  const where: Prisma.ReviewWhereInput = { workerId };
+  const where: Prisma.ReviewWhereInput = {
+    workerId,
+    reviewerRole: "CUSTOMER_TO_WORKER",
+  };
   if (query.rating !== undefined) {
     where.rating = query.rating;
   }
@@ -173,7 +217,76 @@ export const getWorkerReviews = async (
 };
 
 // ---------------------------------------------------------------------------
-// 3. Get reviews submitted or received by current authenticated user
+// 3. Get public reviews for a customer (WORKER_TO_CUSTOMER)
+// ---------------------------------------------------------------------------
+export const getCustomerReviews = async (
+  customerId: string,
+  query: { page?: number; limit?: number },
+) => {
+  const customer = await prisma.customerProfile.findUnique({
+    where: { id: customerId },
+  });
+  if (!customer) {
+    throw new NotFoundError("Customer profile not found");
+  }
+
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const where: Prisma.ReviewWhereInput = {
+    customerId,
+    reviewerRole: "WORKER_TO_CUSTOMER",
+  };
+
+  const [reviews, total] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      include: {
+        worker: {
+          include: {
+            user: { select: { name: true } },
+          },
+        },
+        job: {
+          select: { id: true, title: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.review.count({ where }),
+  ]);
+
+  const data = reviews.map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.createdAt,
+    worker: {
+      id: r.worker.id,
+      user: { name: r.worker.user.name },
+    },
+    job: {
+      id: r.job.id,
+      title: r.job.title,
+    },
+  }));
+
+  return {
+    data,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+// ---------------------------------------------------------------------------
+// 4. Get reviews submitted or received by current authenticated user
 // ---------------------------------------------------------------------------
 export const getMyReviews = async (
   userId: string,
@@ -231,7 +344,7 @@ export const getMyReviews = async (
 };
 
 // ---------------------------------------------------------------------------
-// 4. Update an existing review within 48 hours
+// 5. Update an existing review within 48 hours
 // ---------------------------------------------------------------------------
 export const updateReview = async (
   userId: string,
@@ -240,15 +353,23 @@ export const updateReview = async (
 ) => {
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
+    include: {
+      customer: { select: { userId: true } },
+      worker: { select: { userId: true } },
+    },
   });
   if (!review) {
     throw new NotFoundError("Review not found");
   }
 
-  const customerProfile = await prisma.customerProfile.findUnique({
-    where: { userId },
-  });
-  if (!customerProfile || review.customerId !== customerProfile.id) {
+  const isCustomerAuthor =
+    review.reviewerRole === "CUSTOMER_TO_WORKER" &&
+    review.customer.userId === userId;
+  const isWorkerAuthor =
+    review.reviewerRole === "WORKER_TO_CUSTOMER" &&
+    review.worker.userId === userId;
+
+  if (!isCustomerAuthor && !isWorkerAuthor) {
     throw new ForbiddenError("You do not own this review");
   }
 
@@ -263,18 +384,22 @@ export const updateReview = async (
       where: { id: reviewId },
       data: {
         ...(data.rating !== undefined && { rating: data.rating }),
-        ...(data.comment !== undefined && { comment: data.comment }),
+        ...(data.comment !== undefined && { comment: data.comment ?? null }),
       },
     });
 
-    await recalculateWorkerRatingAvg(tx, review.workerId);
+    if (review.reviewerRole === "CUSTOMER_TO_WORKER") {
+      await recalculateWorkerRatingAvg(tx, review.workerId);
+    } else {
+      await recalculateCustomerRatingAvg(tx, review.customerId);
+    }
 
     return updated;
   });
 };
 
 // ---------------------------------------------------------------------------
-// 5. Delete a review (Author or ADMIN)
+// 6. Delete a review (Author or ADMIN)
 // ---------------------------------------------------------------------------
 export const deleteReview = async (
   userId: string,
@@ -283,18 +408,24 @@ export const deleteReview = async (
 ) => {
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
+    include: {
+      customer: { select: { userId: true } },
+      worker: { select: { userId: true } },
+    },
   });
   if (!review) {
     throw new NotFoundError("Review not found");
   }
 
-  const customerProfile = await prisma.customerProfile.findUnique({
-    where: { userId },
-  });
-  const isAuthor = customerProfile && review.customerId === customerProfile.id;
+  const isCustomerAuthor =
+    review.reviewerRole === "CUSTOMER_TO_WORKER" &&
+    review.customer.userId === userId;
+  const isWorkerAuthor =
+    review.reviewerRole === "WORKER_TO_CUSTOMER" &&
+    review.worker.userId === userId;
   const isAdmin = systemRole === "ADMIN";
 
-  if (!isAuthor && !isAdmin) {
+  if (!isCustomerAuthor && !isWorkerAuthor && !isAdmin) {
     throw new ForbiddenError("You are not authorized to delete this review");
   }
 
@@ -303,7 +434,11 @@ export const deleteReview = async (
       where: { id: reviewId },
     });
 
-    await recalculateWorkerRatingAvg(tx, review.workerId);
+    if (review.reviewerRole === "CUSTOMER_TO_WORKER") {
+      await recalculateWorkerRatingAvg(tx, review.workerId);
+    } else {
+      await recalculateCustomerRatingAvg(tx, review.customerId);
+    }
   });
 
   return { success: true, message: "Review removed" };
