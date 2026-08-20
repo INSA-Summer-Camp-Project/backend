@@ -1,15 +1,30 @@
-FROM postgres:17-alpine
+# ---- builder stage ----
+FROM node:22-alpine AS builder
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+COPY prisma ./prisma/
+COPY prisma.config.ts ./
+COPY src ./src/
+ARG DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+ENV DATABASE_URL=$DATABASE_URL
+RUN pnpm install --frozen-lockfile
+RUN pnpm prisma generate
 
-# Set default environment variables for PostgreSQL initialization
-ENV POSTGRES_DB=backend_db
-ENV POSTGRES_USER=postgres
+# ---- runner stage ----
+FROM node:22-alpine AS runner
+RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g tsx
+RUN apk add --no-cache curl
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
+COPY package.json ./
+COPY src ./src/
+RUN pnpm prune --prod && pnpm add prisma @prisma/adapter-pg @prisma/client
 
-# Expose the default PostgreSQL port
-EXPOSE 5432
-
-# Switch to non-root user for security
-USER postgres
-
-# Health check to ensure PostgreSQL service is healthy and ready to accept connections
-HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
-  CMD pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+EXPOSE 3000
+ENTRYPOINT ["/docker-entrypoint.sh"]
