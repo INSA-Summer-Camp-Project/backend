@@ -174,12 +174,13 @@ model Service {
 }
 
 model Portfolio {
-  id          String   @id @default(uuid())
-  workerId    String   @map("worker_id")
-  title       String
-  description String?  @db.Text
-  imageUrl    String   @map("image_url")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  workerId      String   @map("worker_id")
+  title         String
+  description   String?  @db.Text
+  imageUrl      String   @map("image_url")
+  imagePublicId String?  @map("image_public_id")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
@@ -187,11 +188,12 @@ model Portfolio {
 }
 
 model Certificate {
-  id         String    @id @default(uuid())
-  workerId   String    @map("worker_id")
-  title      String
-  fileUrl    String    @map("file_url")
-  issuedDate DateTime? @map("issued_date") @db.Date
+  id           String    @id @default(uuid())
+  workerId     String    @map("worker_id")
+  title        String
+  fileUrl      String    @map("file_url")
+  filePublicId String?   @map("file_public_id")
+  issuedDate  DateTime? @map("issued_date") @db.Date
 
   worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 

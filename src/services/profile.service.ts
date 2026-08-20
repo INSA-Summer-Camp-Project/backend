@@ -120,6 +120,9 @@ export const addPortfolioItem = async (
       title: dto.title,
       description: dto.description,
       imageUrl: dto.imageUrl,
+      ...(dto.imagePublicId !== undefined && {
+        imagePublicId: dto.imagePublicId,
+      }),
     },
   });
 };
@@ -144,6 +147,7 @@ export const addCertificate = async (
       workerId: worker.id,
       title: dto.title,
       fileUrl: dto.fileUrl,
+      ...(dto.filePublicId !== undefined && { filePublicId: dto.filePublicId }),
     },
   });
 };
