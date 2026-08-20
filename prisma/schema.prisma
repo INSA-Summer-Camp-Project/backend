@@ -33,21 +33,30 @@ enum UserStatus {
 }
 
 enum JobSource {
-  MARKETPLACE
-  DIRECT_HIRE
+  POSTING
+  DIRECT
 }
 
 enum JobStatus {
   OPEN
-  ASSIGNED
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
   COMPLETED
   CANCELLED
+  DECLINED
 }
 
 enum ApplicationStatus {
   PENDING
   ACCEPTED
   REJECTED
+  WITHDRAWN
+}
+
+enum ReviewerRole {
+  CUSTOMER_TO_WORKER
+  WORKER_TO_CUSTOMER
 }
 
 enum PaymentMethod {
@@ -105,6 +114,7 @@ model CustomerProfile {
   id        String   @id @default(uuid())
   userId    String   @unique
   bio       String?
+  ratingAvg Decimal  @default(0.00) @map("rating_avg") @db.Decimal(3, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -129,7 +139,7 @@ model Worker {
   portfolios     Portfolio[]
   certificates   Certificate[]
   services       Service[]
-  targetedJobs   Job[]          @relation("DirectHires")
+  targetedJobs   Job[]          @relation("TargetedJobs")
   assignedJobs   Job[]          @relation("AssignedJobs")
   applications   Application[]
   reviews        Review[]
@@ -191,10 +201,10 @@ model Job {
   id               String    @id @default(uuid())
   customerId       String
   targetWorkerId   String?
-  source           JobSource
+  source           JobSource @default(POSTING)
   categoryId       String
   title            String
-  description      String
+  description      String    @db.Text
   budget           Decimal   @db.Decimal(10, 2)
   status           JobStatus @default(OPEN)
   assignedWorkerId String?
@@ -202,12 +212,17 @@ model Job {
   updatedAt        DateTime  @updatedAt
 
   customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  targetWorker   Worker?         @relation("DirectHires", fields: [targetWorkerId], references: [id], onDelete: SetNull)
+  targetWorker   Worker?         @relation("TargetedJobs", fields: [targetWorkerId], references: [id], onDelete: SetNull)
   category       Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   assignedWorker Worker?         @relation("AssignedJobs", fields: [assignedWorkerId], references: [id], onDelete: SetNull)
   applications   Application[]
   payments       Payment[]
   reviews        Review[]
+
+  @@index([customerId])
+  @@index([categoryId, status])
+  @@index([targetWorkerId])
+  @@index([assignedWorkerId])
 }
 
 model Application {
@@ -222,6 +237,10 @@ model Application {
 
   job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
   worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, workerId])
+  @@index([workerId])
+  @@index([jobId])
 }
 
 model Payment {
@@ -240,18 +259,23 @@ model Payment {
 }
 
 model Review {
-  id         String   @id @default(uuid())
-  jobId      String
-  workerId   String
-  customerId String
-  rating     Int
-  comment    String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String       @id @default(uuid())
+  jobId        String
+  workerId     String
+  customerId   String
+  reviewerRole ReviewerRole
+  rating       Int
+  comment      String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   job      Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
   worker   Worker          @relation(fields: [workerId], references: [id], onDelete: Cascade)
   customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, reviewerRole])
+  @@index([workerId])
+  @@index([customerId])
 }
 
 model PaymentAccount {

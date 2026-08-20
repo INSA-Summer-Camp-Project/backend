@@ -16,6 +16,8 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
     await prisma.certificate.deleteMany();
     await prisma.portfolio.deleteMany();
     await prisma.service.deleteMany();
+    await prisma.application.deleteMany();
+    await prisma.job.deleteMany();
     await prisma.category.deleteMany();
     await prisma.worker.deleteMany();
     await prisma.customerProfile.deleteMany();
