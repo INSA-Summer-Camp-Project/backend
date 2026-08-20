@@ -12,24 +12,26 @@ const envSchema = z.object({
 
   FRONTEND_URL: z.string().default("http://localhost:3000"),
 
-  JWT_SECRET: z
-    .string()
-    .default("super-secret-jwt-access-key-for-servicehub-phase1"),
-  JWT_REFRESH_SECRET: z
-    .string()
-    .default("super-secret-jwt-refresh-key-for-servicehub-phase1"),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
-  JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 
-  TELEGRAM_CLIENT_ID: z.string().default("mock-telegram-client-id"),
-  TELEGRAM_CLIENT_SECRET: z.string().default("mock-telegram-client-secret"),
-  TELEGRAM_REDIRECT_URI: z
+  TELEGRAM_CLIENT_ID: z.string().min(1, "TELEGRAM_CLIENT_ID is required"),
+  TELEGRAM_CLIENT_SECRET: z
     .string()
-    .default("http://localhost:3000/auth/callback"),
-  TELEGRAM_BOT_TOKEN: z.string().default("mock-telegram-bot-token"),
+    .min(1, "TELEGRAM_CLIENT_SECRET is required"),
+  TELEGRAM_REDIRECT_URI: z.string().min(1, "TELEGRAM_REDIRECT_URI is required"),
+  TELEGRAM_BOT_TOKEN: z.string().min(1, "TELEGRAM_BOT_TOKEN is required"),
   TELEGRAM_OIDC_COOKIE_SECRET: z
     .string()
-    .default("super-secret-cookie-key-for-telegram-oidc-32-chars!"),
+    .min(32, "TELEGRAM_OIDC_COOKIE_SECRET must be at least 32 characters"),
+
+  CLOUDINARY_URL: z.string().optional(),
+
+  CHAPA_PUBLIC_KEY: z.string().optional(),
+  CHAPA_SECRET_KEY: z.string().optional(),
+  CHAPA_ENCRYPTION_KEY: z.string().optional(),
+  CHAPA_RETURN_URL: z.string().url().optional(),
+  CHAPA_CALLBACK_URL: z.string().url().optional(),
 });
 
 const result = envSchema.safeParse(process.env);
