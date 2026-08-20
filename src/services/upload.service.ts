@@ -1,5 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 
+import { BadRequestError, ForbiddenError } from "@/errors";
+
 // Cloudinary SDK auto-detects CLOUDINARY_URL from environment
 cloudinary.config();
 
@@ -11,7 +13,7 @@ export const generateUploadSignature = (
   uploadType: UploadType,
 ) => {
   if (!ALLOWED_UPLOAD_TYPES.includes(uploadType)) {
-    throw new Error(
+    throw new BadRequestError(
       `Invalid upload type: ${uploadType}. Must be one of: ${ALLOWED_UPLOAD_TYPES.join(", ")}`,
     );
   }
@@ -34,9 +36,7 @@ export const generateUploadSignature = (
 
 export const deleteFile = async (publicId: string, userId: string) => {
   if (!publicId.startsWith(`servicehub/${userId}/`)) {
-    throw new Error(
-      "Unauthorized: cannot delete files belonging to other users",
-    );
+    throw new ForbiddenError("Cannot delete files belonging to other users");
   }
 
   const result = await cloudinary.uploader.destroy(publicId);

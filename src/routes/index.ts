@@ -6,6 +6,7 @@ import authRouter from "@/routes/auth.routes";
 import categoryRouter from "@/routes/category.routes";
 import jobRouter from "@/routes/job.routes";
 import notificationRouter from "@/routes/notification.routes";
+import onboardingRouter from "@/routes/onboarding.routes";
 import paymentRouter from "@/routes/payment.routes";
 import profileRouter from "@/routes/profile.routes";
 import reviewRouter from "@/routes/review.routes";
@@ -24,6 +25,7 @@ router.use("/jobs", jobRouter);
 router.use("/payments", paymentRouter);
 router.use("/reviews", reviewRouter);
 router.use("/notifications", notificationRouter);
+router.use("/onboarding", onboardingRouter);
 router.use("/admin", adminRouter);
 
 export default router;

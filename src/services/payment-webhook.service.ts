@@ -1,6 +1,6 @@
 import { PaymentStatus } from "@prisma/client";
 
-import { NotFoundError, BadRequestError } from "@/errors";
+import { BadRequestError, NotFoundError } from "@/errors";
 import { chapaClient } from "@/lib/chapa/chapa.client";
 import { prisma } from "@/lib/prisma";
 

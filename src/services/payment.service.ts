@@ -6,7 +6,7 @@ import {
 } from "@prisma/client";
 
 import { env } from "@/config/env";
-import { NotFoundError, ForbiddenError, BadRequestError } from "@/errors";
+import { BadRequestError, ForbiddenError, NotFoundError } from "@/errors";
 import { chapaClient } from "@/lib/chapa/chapa.client";
 import { prisma } from "@/lib/prisma";
 

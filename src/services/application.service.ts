@@ -1,7 +1,7 @@
 import { ApplicationStatus, JobStatus, Prisma } from "@prisma/client";
 
 import type { CreateApplicationDto } from "@/dtos/application.dto";
-import { NotFoundError, ForbiddenError, BadRequestError } from "@/errors";
+import { BadRequestError, ForbiddenError, NotFoundError } from "@/errors";
 import { prisma } from "@/lib/prisma";
 
 export const createApplication = async (

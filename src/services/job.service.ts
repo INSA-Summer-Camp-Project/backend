@@ -3,7 +3,7 @@ import { JobStatus } from "@prisma/client";
 import type { PaginationDto } from "@/dtos/common.dto";
 import { getPaginationMeta } from "@/dtos/common.dto";
 import type { CreateJobDto, UpdateJobStatusDto } from "@/dtos/job.dto";
-import { NotFoundError, ForbiddenError, BadRequestError } from "@/errors";
+import { BadRequestError, NotFoundError } from "@/errors";
 import { prisma } from "@/lib/prisma";
 
 export const createJob = async (userId: string, dto: CreateJobDto) => {

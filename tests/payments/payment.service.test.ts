@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { chapaClient } from "@/lib/chapa/chapa.client";
 import { prisma } from "@/lib/prisma";
-import * as applicationService from "@/services/application.service";
 import * as paymentService from "@/services/payment.service";
 import * as paymentWebhookService from "@/services/payment-webhook.service";
 
