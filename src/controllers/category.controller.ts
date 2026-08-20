@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from "express";
+import type { Request, Response } from "express";
 
 import * as categoryService from "@/services/category.service";
 import { asyncHandler } from "@/utils/async-handler";

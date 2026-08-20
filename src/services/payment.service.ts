@@ -46,8 +46,10 @@ export const createCheckout = async (
 
   if (!customer) throw new Error("Customer not found");
 
-  // 2. Generate txRef
-  const txRef = `tx-${applicationId}-${Date.now()}`;
+  // 2. Generate txRef (max 50 chars per Chapa API)
+  const shortId = applicationId.replace(/-/g, "").slice(0, 8);
+  const shortTs = Date.now().toString().slice(-6);
+  const txRef = `sh_${shortId}_${shortTs}`;
 
   // 3. Create Payment record
   const platformCommission =
@@ -82,7 +84,7 @@ export const createCheckout = async (
     returnUrl,
     callbackUrl,
     customer: {
-      email: customer.user.telegramId + "@servicehub.local", // Placeholder as discussed
+      email: `user${Date.now()}@servicehub.io`, // Placeholder as discussed
       firstName: customer.user.name.split(" ")[0] || "Customer",
       lastName: customer.user.name.split(" ").slice(1).join(" ") || "Customer",
     },

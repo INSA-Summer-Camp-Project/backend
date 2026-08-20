@@ -46,8 +46,8 @@ export class ChapaGateway implements IPaymentGateway {
       first_name: input.customer.firstName,
       last_name: input.customer.lastName || "User",
       customization: {
-        title: "ServiceHub Payment",
-        description: `Payment for ServiceHub transaction ${input.txRef}`,
+        title: "ServiceHub Pay",
+        description: `Payment for transaction ${input.txRef}`.slice(0, 50),
       },
     };
 
@@ -63,9 +63,7 @@ export class ChapaGateway implements IPaymentGateway {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(
-        `Chapa initialize failed: ${data.message || "Unknown error"}`,
-      );
+      throw new Error(`Chapa initialize failed: ${JSON.stringify(data)}`);
     }
 
     return data as ChapaInitializeResponse;

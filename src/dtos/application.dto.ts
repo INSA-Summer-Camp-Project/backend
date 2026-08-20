@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createApplicationSchema = z.object({
-  jobId: z.string().uuid("Invalid job ID format"),
+  jobId: z.uuid("Invalid job ID format"),
   proposedPrice: z
     .number()
     .positive("Proposed price must be a positive number"),

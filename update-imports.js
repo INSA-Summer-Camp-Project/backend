@@ -1,3 +1,4 @@
+/* eslint-disable */
 const fs = require("fs");
 const files = [
   "src/services/worker.service.ts",
