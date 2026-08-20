@@ -17,20 +17,13 @@ vi.mock("@/utils/response.util", () => ({
 }));
 
 describe("Job Controller", () => {
-  let mockReq: Partial<
-    Request<
-      Record<string, string>,
-      unknown,
-      unknown,
-      PaginationDto & { categoryId?: string }
-    >
-  >;
+  let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;
 
   beforeEach(() => {
     mockReq = {
-      query: { page: 1, limit: 10 },
+      query: { page: "1", limit: "10" } as any,
     };
     mockRes = {
       status: vi.fn().mockReturnThis(),
@@ -57,16 +50,7 @@ describe("Job Controller", () => {
           : never,
       );
 
-      await getPublicJobs(
-        mockReq as Request<
-          Record<string, string>,
-          unknown,
-          unknown,
-          PaginationDto & { categoryId?: string }
-        >,
-        mockRes as Response,
-        mockNext,
-      );
+      await getPublicJobs(mockReq as Request, mockRes as Response, mockNext);
 
       expect(jobService.getPublicJobs).toHaveBeenCalledWith(
         { page: 1, limit: 10 },
@@ -84,16 +68,7 @@ describe("Job Controller", () => {
       const error = new Error("Database error");
       vi.mocked(jobService.getPublicJobs).mockRejectedValue(error);
 
-      await getPublicJobs(
-        mockReq as Request<
-          Record<string, string>,
-          unknown,
-          unknown,
-          PaginationDto & { categoryId?: string }
-        >,
-        mockRes as Response,
-        mockNext,
-      );
+      await getPublicJobs(mockReq as Request, mockRes as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(error);
       expect(sendSuccess).not.toHaveBeenCalled();

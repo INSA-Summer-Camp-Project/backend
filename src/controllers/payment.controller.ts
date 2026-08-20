@@ -20,13 +20,11 @@ export const checkout = asyncHandler(
   },
 );
 
-export const verify = asyncHandler(
-  async (req: Request<{ txRef: string }>, res: Response) => {
-    const { txRef } = req.params;
-    const result = await paymentWebhookService.handleSuccessfulPayment(txRef);
-    sendSuccess(res, result);
-  },
-);
+export const verify = asyncHandler(async (req: Request, res: Response) => {
+  const { txRef } = req.params as { txRef: string };
+  const result = await paymentWebhookService.handleSuccessfulPayment(txRef);
+  sendSuccess(res, result);
+});
 
 export const webhook = asyncHandler(async (req: Request, res: Response) => {
   const hash = req.headers["chapa-signature"] as string;

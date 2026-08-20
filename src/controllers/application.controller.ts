@@ -30,18 +30,18 @@ export const getWorkerApplications = asyncHandler(
 );
 
 export const withdrawApplication = asyncHandler(
-  async (req: Request<{ id: string }>, res: Response) => {
+  async (req: Request, res: Response) => {
     const workerId = req.user!.id;
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const result = await applicationService.withdrawApplication(workerId, id);
     sendSuccess(res, result);
   },
 );
 
 export const getJobApplications = asyncHandler(
-  async (req: Request<{ jobId: string }>, res: Response) => {
+  async (req: Request, res: Response) => {
     const customerId = req.user!.id;
-    const { jobId } = req.params;
+    const { jobId } = req.params as { jobId: string };
     const applications = await applicationService.getJobApplications(
       customerId,
       jobId,
@@ -51,9 +51,9 @@ export const getJobApplications = asyncHandler(
 );
 
 export const rejectApplication = asyncHandler(
-  async (req: Request<{ id: string }>, res: Response) => {
+  async (req: Request, res: Response) => {
     const customerId = req.user!.id;
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const result = await applicationService.rejectApplication(customerId, id);
     sendSuccess(res, result);
   },

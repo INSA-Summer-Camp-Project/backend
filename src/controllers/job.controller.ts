@@ -29,19 +29,13 @@ export const getWorkerJobs = asyncHandler(
 );
 
 export const getPublicJobs = asyncHandler(
-  async (
-    req: Request<
-      Record<string, string>,
-      unknown,
-      unknown,
-      PaginationDto & { categoryId?: string }
-    >,
-    res: Response,
-  ) => {
-    const pagination = req.query;
-    const categoryId = req.query.categoryId;
+  async (req: Request, res: Response) => {
+    const query = req.query as unknown as PaginationDto & {
+      categoryId?: string;
+    };
+    const categoryId = req.query.categoryId as string | undefined;
 
-    const result = await jobService.getPublicJobs(pagination, categoryId);
+    const result = await jobService.getPublicJobs(query, categoryId);
 
     sendSuccess(res, result.data, 200, result.meta);
   },

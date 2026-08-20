@@ -11,12 +11,7 @@ import { validate } from "@/middlewares/validate.middleware";
 const router: Router = Router();
 
 // Public routes (though authenticate might be used optionally in the controller)
-router.get<
-  Record<string, string>,
-  unknown,
-  unknown,
-  PaginationDto & { categoryId?: string }
->(
+router.get(
   "/public",
   validate({ query: paginationSchema }),
   jobController.getPublicJobs,
