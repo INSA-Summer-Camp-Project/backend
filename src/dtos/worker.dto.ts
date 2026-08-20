@@ -86,11 +86,13 @@ export const CreatePortfolioSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
   description: z.string().optional(),
   imageUrl: z.string().url({ message: "Image URL must be a valid URL" }),
+  imagePublicId: z.string().min(1, "Image public ID is required").optional(),
 });
 
 export const CreateCertificateSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
   fileUrl: z.string().url({ message: "File URL must be a valid URL" }),
+  filePublicId: z.string().min(1, "File public ID is required").optional(),
   issuedDate: z
     .string()
     .refine((val) => !Number.isNaN(Date.parse(val)), {
