@@ -43,4 +43,10 @@ router.post(
   applicationController.rejectApplication,
 );
 
+router.patch(
+  "/:id/accept",
+  requireActiveRole("CUSTOMER"),
+  applicationController.acceptApplication,
+);
+
 export default router;

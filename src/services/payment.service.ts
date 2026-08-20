@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 
 import { env } from "@/config/env";
+import { NotFoundError, ForbiddenError, BadRequestError } from "@/errors";
 import { chapaClient } from "@/lib/chapa/chapa.client";
 import { prisma } from "@/lib/prisma";
 
@@ -24,19 +25,22 @@ export const createCheckout = async (
   });
 
   if (!application) {
-    throw new Error("Application not found");
+    throw new NotFoundError("Application not found");
   }
 
   if (application.job.customerId !== customerId) {
-    throw new Error("Not authorized to pay for this application");
+    throw new ForbiddenError("Not authorized to pay for this application");
   }
 
-  if (application.job.status !== JobStatus.OPEN) {
-    throw new Error("Job is no longer open");
+  if (
+    application.job.status !== JobStatus.OPEN &&
+    application.job.status !== JobStatus.ASSIGNED
+  ) {
+    throw new BadRequestError("Job is no longer open");
   }
 
   if (application.status !== ApplicationStatus.PENDING) {
-    throw new Error("Application is not in a pending state");
+    throw new BadRequestError("Application is not in a pending state");
   }
 
   const customer = await prisma.customerProfile.findUnique({
@@ -44,7 +48,7 @@ export const createCheckout = async (
     include: { user: true },
   });
 
-  if (!customer) throw new Error("Customer not found");
+  if (!customer) throw new NotFoundError("Customer not found");
 
   // 2. Generate txRef (max 50 chars per Chapa API)
   const shortId = applicationId.replace(/-/g, "").slice(0, 8);

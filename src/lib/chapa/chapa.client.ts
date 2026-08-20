@@ -104,7 +104,14 @@ export class ChapaGateway implements IPaymentGateway {
       .update(payload)
       .digest("hex");
 
-    return hash === signature;
+    if (hash.length !== signature.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(
+      Buffer.from(hash, "hex"),
+      Buffer.from(signature, "hex"),
+    );
   }
 }
 

@@ -47,7 +47,8 @@ describe("Category Controller", () => {
       const error = new Error("Database error");
       vi.mocked(categoryService.getAllCategories).mockRejectedValue(error);
 
-      await getAllCategories(mockReq as Request, mockRes as Response, mockNext);
+      getAllCategories(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

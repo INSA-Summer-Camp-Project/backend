@@ -80,7 +80,8 @@ describe("Worker Controller", () => {
       const error = new Error("Database error");
       vi.mocked(workerService.getWorkers).mockRejectedValue(error);
 
-      await getWorkers(mockReq as Request, mockRes as Response, mockNext);
+      getWorkers(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

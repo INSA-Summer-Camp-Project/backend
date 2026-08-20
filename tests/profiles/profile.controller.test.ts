@@ -64,11 +64,8 @@ describe("Profile Controller", () => {
       const error = new Error("Database error");
       vi.mocked(profileService.updateWorkerProfile).mockRejectedValue(error);
 
-      await updateWorkerProfile(
-        mockReq as Request,
-        mockRes as Response,
-        mockNext,
-      );
+      updateWorkerProfile(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

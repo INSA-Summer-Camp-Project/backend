@@ -199,6 +199,8 @@ model Review {
   job      Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
   worker   WorkerProfile   @relation(fields: [workerId], references: [id], onDelete: Cascade)
   customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, customerId])
 }
 
 model PortfolioItem {

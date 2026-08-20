@@ -58,3 +58,12 @@ export const rejectApplication = asyncHandler(
     sendSuccess(res, result);
   },
 );
+
+export const acceptApplication = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const { id } = req.params as { id: string };
+    const result = await applicationService.acceptApplication(userId, id);
+    sendSuccess(res, result);
+  },
+);

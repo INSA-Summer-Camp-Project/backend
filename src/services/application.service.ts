@@ -1,6 +1,7 @@
 import { ApplicationStatus, JobStatus, Prisma } from "@prisma/client";
 
 import type { CreateApplicationDto } from "@/dtos/application.dto";
+import { NotFoundError, ForbiddenError, BadRequestError } from "@/errors";
 import { prisma } from "@/lib/prisma";
 
 export const createApplication = async (
@@ -174,4 +175,40 @@ export const acceptAndAssignJob = async (
   });
 
   return { acceptedApp, assignedJob };
+};
+
+export const acceptApplication = async (
+  customerId: string,
+  applicationId: string,
+) => {
+  // 1. Find application and verify customer owns the job
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { job: true },
+  });
+
+  if (!application) {
+    throw new NotFoundError("Application not found");
+  }
+
+  if (application.job.customerId !== customerId) {
+    throw new ForbiddenError("Not authorized to accept this application");
+  }
+
+  // 2. Verify job is OPEN
+  if (application.job.status !== JobStatus.OPEN) {
+    throw new BadRequestError("Job is no longer open");
+  }
+
+  // 3. Verify application is PENDING
+  if (application.status !== ApplicationStatus.PENDING) {
+    throw new BadRequestError("Application is not in a pending state");
+  }
+
+  // 4. Wrap acceptAndAssignJob in a transaction
+  const result = await prisma.$transaction(async (tx) => {
+    return acceptAndAssignJob(tx, applicationId);
+  });
+
+  return result;
 };

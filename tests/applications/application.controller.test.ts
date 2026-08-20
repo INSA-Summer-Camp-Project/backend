@@ -74,7 +74,7 @@ describe("Application Controller", () => {
       const error = new Error("Test error");
       vi.mocked(applicationService.createApplication).mockRejectedValue(error);
 
-      await createApplication(
+      createApplication(
         mockReq as Request<
           Record<string, string>,
           unknown,
@@ -83,6 +83,7 @@ describe("Application Controller", () => {
         mockRes as Response,
         mockNext,
       );
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

@@ -2,7 +2,7 @@ import { ActiveRole } from "@prisma/client";
 import { Router } from "express";
 
 import * as jobController from "@/controllers/job.controller";
-import { type PaginationDto, paginationSchema } from "@/dtos/common.dto";
+import { paginationSchema } from "@/dtos/common.dto";
 import { createJobSchema, updateJobStatusSchema } from "@/dtos/job.dto";
 import { requireActiveRole } from "@/middlewares/active-role.middleware";
 import { authenticate, optionalAuth } from "@/middlewares/auth.middleware";
@@ -36,6 +36,13 @@ router.get(
   authenticate,
   requireActiveRole(ActiveRole.WORKER),
   jobController.getWorkerJobs,
+);
+
+router.patch(
+  "/:id/complete",
+  authenticate,
+  requireActiveRole(ActiveRole.CUSTOMER),
+  jobController.completeJob,
 );
 
 // Dynamic routes (must be last)

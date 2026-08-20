@@ -1,0 +1,902 @@
+{
+  "info": {
+    "name": "ServiceHub Backend API",
+    "description": "Complete API collection for ServiceHub backend.\n\n## Quick Start\n1. Import the ServiceHub Environment file\n2. Set the environment to 'ServiceHub Local'\n3. Start with Health Check to verify server is running\n4. Use Telegram Login to authenticate (redirects to Telegram OIDC)\n5. After login, the auth token is saved automatically via Tests script\n\n## Auth Flow\n- Most endpoints require a Bearer token\n- The collection has a Tests script that auto-saves the token after login\n- For manual testing, paste the JWT into the `auth_token` variable",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "{{baseUrl}}/api/v1",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Check server and database connectivity. Returns 200 if healthy, 503 if DB is down."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints. Login via Telegram OIDC, manage session and roles.",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Returns the currently authenticated user profile including customer/worker profiles."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has user data', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data).to.have.property('id');",
+                  "  pm.expect(json.data).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Active Role",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/auth/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "role"]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activeRole\": \"CUSTOMER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Switch active role between CUSTOMER and WORKER. This determines which features are accessible."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            },
+            "description": "Clears the authentication cookie and invalidates the session."
+          },
+          "response": []
+        },
+        {
+          "name": "Telegram Login (Redirect)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/telegram",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "telegram"]
+            },
+            "description": "Initiates Telegram OIDC login flow. Opens Telegram for authentication. After callback, the token is set via cookie.\n\nNote: This redirects to Telegram. To get a token manually, use the browser or run the backend and complete the OAuth flow.",
+            "auth": null
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "description": "Public service category endpoints.",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/categories/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories", ""]
+            },
+            "description": "Returns all service categories. No authentication required.",
+            "auth": null
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array of categories', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Workers",
+      "description": "Public worker directory endpoints.",
+      "item": [
+        {
+          "name": "Get All Workers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/workers/?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workers", ""],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (max 50)"
+                }
+              ]
+            },
+            "description": "Returns paginated list of worker profiles. No authentication required.",
+            "auth": null
+          },
+          "response": []
+        },
+        {
+          "name": "Get Worker By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/workers/{{worker_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workers", "{{worker_id}}"]
+            },
+            "description": "Returns a single worker profile by ID. No authentication required.",
+            "auth": null
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "description": "Job posting, browsing, and management. Customers create jobs, workers browse and apply.",
+      "item": [
+        {
+          "name": "Get Public Jobs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/jobs/public?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "jobs", "public"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Returns paginated list of open jobs visible to workers. No authentication required.",
+            "auth": null
+          },
+          "response": []
+        },
+        {
+          "name": "Create Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('created_job_id', json.data.id);",
+                  "    console.log('Saved job_id:', json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/jobs/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "jobs", ""]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Fix leaking kitchen faucet\",\n  \"description\": \"My kitchen faucet has been dripping for 2 days. Need a plumber to fix or replace it urgently.\",\n  \"categoryId\": \"{{category_id}}\",\n  \"budget\": 1500\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new job posting. Requires CUSTOMER active role.\n\n categoryId: Get from Categories > Get All Categories first."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Customer Jobs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/jobs/customer/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "jobs", "customer", "jobs"]
+            },
+            "description": "Returns all jobs posted by the authenticated customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Worker Available Jobs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/jobs/worker/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "jobs", "worker", "jobs"]
+            },
+            "description": "Returns jobs available for the authenticated worker to apply to."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/jobs/{{created_job_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "jobs", "{{created_job_id}}"]
+            },
+            "description": "Returns full job details including applications. Optional auth."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Job Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/jobs/{{created_job_id}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "jobs", "{{created_job_id}}", "status"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CANCELLED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update job status. Requires CUSTOMER role. Valid statuses: OPEN, ASSIGNED, COMPLETED, CANCELLED."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "description": "Worker applications (bids) on jobs. Workers create/withdraw, customers view/reject.",
+      "item": [
+        {
+          "name": "Create Application (Bid)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('created_application_id', json.data.id);",
+                  "    console.log('Saved application_id:', json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/applications/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "applications", ""]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{created_job_id}}\",\n  \"proposedPrice\": 1200,\n  \"estimatedTime\": 120\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Submit a bid on a job. Requires WORKER active role.\n\n estimatedTime is in minutes."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Worker Applications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/applications/worker",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "applications", "worker"]
+            },
+            "description": "Returns all applications submitted by the authenticated worker."
+          },
+          "response": []
+        },
+        {
+          "name": "Withdraw Application",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/applications/{{created_application_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                "{{created_application_id}}"
+              ]
+            },
+            "description": "Withdraw a pending application. Requires WORKER role. Only PENDING applications can be withdrawn."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job Applications (Customer)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/applications/job/{{created_job_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "applications", "job", "{{created_job_id}}"]
+            },
+            "description": "Returns all applications for a specific job. Requires CUSTOMER role. Only the job owner can view."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Application",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/applications/{{created_application_id}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "applications",
+                "{{created_application_id}}",
+                "reject"
+              ]
+            },
+            "description": "Reject a pending application. Requires CUSTOMER role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "description": "Chapa payment integration. Checkout, webhook, and verification.",
+      "item": [
+        {
+          "name": "Initiate Checkout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.txRef) {",
+                  "    pm.collectionVariables.set('payment_tx_ref', json.data.txRef);",
+                  "    console.log('Saved txRef:', json.data.txRef);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/payments/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "checkout"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{created_application_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Initialize Chapa payment. Requires CUSTOMER role.\n\n Flow: Create job → Worker applies → Customer accepts (triggers checkout) → Redirect to Chapa → Chapa calls webhook → Payment confirmed.\n\n Returns checkout_url to redirect the user."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/payments/verify/{{payment_tx_ref}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "verify", "{{payment_tx_ref}}"]
+            },
+            "description": "Manually verify a payment by transaction reference. Useful for debugging."
+          },
+          "response": []
+        },
+        {
+          "name": "Webhook (Simulate)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/payments/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "webhook"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "chapa-signature", "value": "{{webhook_signature}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"charge.success\",\n  \"tx_ref\": \"{{payment_tx_ref}}\",\n  \"status\": \"success\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Simulate a Chapa webhook callback. No auth required (uses signature validation).\n\n In production, Chapa calls this endpoint automatically after payment."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profiles",
+      "description": "Worker profile management. Update bio, add portfolio items and certificates.",
+      "item": [
+        {
+          "name": "Update Worker Profile",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/profiles/worker",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles", "worker"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Experienced plumber with 5 years of residential and commercial experience.\",\n  \"experience\": \"5 years residential plumbing\",\n  \"baseRate\": 500,\n  \"categoryIds\": [\"{{category_id}}\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update worker profile. Requires WORKER active role.\n\n All fields are optional (partial update)."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Portfolio Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('portfolio_item_id', json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/profiles/worker/portfolio",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles", "worker", "portfolio"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Kitchen Renovation\",\n  \"description\": \"Complete kitchen remodel including plumbing and tiling\",\n  \"imageUrl\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\",\n  \"imagePublicId\": \"sample\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Add a portfolio item. Requires WORKER role. Upload image via Upload > Get Signature first."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Certificate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('certificate_id', json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/profiles/worker/certificates",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles", "worker", "certificates"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Licensed Plumber\",\n  \"fileUrl\": \"https://res.cloudinary.com/demo/image/upload/sample.pdf\",\n  \"filePublicId\": \"sample\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Add a certificate. Requires WORKER role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "description": "Customer reviews for workers.",
+      "item": [
+        {
+          "name": "Get Reviews",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reviews/?page=1&limit=20&workerId={{worker_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reviews", ""],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                {
+                  "key": "workerId",
+                  "value": "{{worker_id}}",
+                  "description": "Filter by worker ID (optional)"
+                },
+                {
+                  "key": "jobId",
+                  "value": "",
+                  "description": "Filter by job ID (optional)"
+                },
+                {
+                  "key": "customerId",
+                  "value": "",
+                  "description": "Filter by customer ID (optional)"
+                }
+              ]
+            },
+            "description": "Get reviews with optional filters. No authentication required.",
+            "auth": null
+          },
+          "response": []
+        },
+        {
+          "name": "Get Review By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reviews/{{review_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reviews", "{{review_id}}"]
+            },
+            "description": "Get a single review by ID. No authentication required.",
+            "auth": null
+          },
+          "response": []
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/reviews/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reviews", ""]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{created_job_id}}\",\n  \"rating\": 5,\n  \"comment\": \"Excellent work! Very professional and timely.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a review for a completed job. Requires CUSTOMER role.\n\n Rating: 1-5. Comment: max 500 chars."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "description": "Cloudinary upload helpers. Get signed upload params, delete files.",
+      "item": [
+        {
+          "name": "Get Upload Signature",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/upload/signature",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "upload", "signature"]
+            },
+            "description": "Returns Cloudinary upload signature (timestamp, signature, api_key, etc.).\n\n Use this to upload files directly from the frontend to Cloudinary without exposing your API secret."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/upload/file",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "upload", "file"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"publicId\": \"sample\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Delete a file from Cloudinary by public ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "User notification management.",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/notifications/?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notifications", ""],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Returns paginated notifications for the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notifications", "unread-count"]
+            },
+            "description": "Returns the count of unread notifications."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification As Read",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "{{notification_id}}",
+                "read"
+              ]
+            },
+            "description": "Mark a single notification as read."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All As Read",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Admin-only endpoints. Requires ADMIN system role.",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/admin/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "stats"]
+            },
+            "description": "Returns platform analytics (total users, jobs, payments). Requires ADMIN role."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/admin/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                {
+                  "key": "role",
+                  "value": "",
+                  "description": "Filter by system role (USER, ADMIN)"
+                }
+              ]
+            },
+            "description": "Returns paginated user list. Requires ADMIN role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{target_user_id}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{target_user_id}}",
+                "role"
+              ]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update a user's system role. Requires ADMIN role.\n\n Valid roles: USER, ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('category_id', json.data.id);",
+                  "    console.log('Saved category_id:', json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/admin/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "categories"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plumbing\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new service category. Requires ADMIN role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/admin/categories/{{category_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "categories", "{{category_id}}"]
+            },
+            "description": "Delete a service category by ID. Requires ADMIN role."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

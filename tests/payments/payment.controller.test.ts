@@ -157,7 +157,8 @@ describe("Payment Controller", () => {
         paymentWebhookService.handleSuccessfulPayment,
       ).mockRejectedValue(error as never);
 
-      await webhook(mockReq as Request, mockRes as Response, mockNext);
+      webhook(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

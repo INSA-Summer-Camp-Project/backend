@@ -8,5 +8,6 @@ const router: Router = Router();
 router.use(authenticate);
 
 router.get("/signature", uploadController.getUploadSignature);
+router.delete("/file", uploadController.deleteFile);
 
 export default router;

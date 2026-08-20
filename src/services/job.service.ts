@@ -1,7 +1,9 @@
+import { JobStatus } from "@prisma/client";
+
 import type { PaginationDto } from "@/dtos/common.dto";
 import { getPaginationMeta } from "@/dtos/common.dto";
 import type { CreateJobDto, UpdateJobStatusDto } from "@/dtos/job.dto";
-import { NotFoundError } from "@/errors";
+import { NotFoundError, ForbiddenError, BadRequestError } from "@/errors";
 import { prisma } from "@/lib/prisma";
 
 export const createJob = async (userId: string, dto: CreateJobDto) => {
@@ -152,4 +154,37 @@ export const updateJobStatus = async (
     where: { id: jobId },
     data: { status: dto.status },
   });
+};
+
+export const completeJob = async (userId: string, jobId: string) => {
+  // 1. Find customer profile from userId
+  const customerProfile = await prisma.customerProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!customerProfile) {
+    throw new NotFoundError("Customer profile not found");
+  }
+
+  // 2. Find job, verify customer owns it
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+  });
+
+  if (!job || job.customerId !== customerProfile.id) {
+    throw new NotFoundError("Job not found or access denied");
+  }
+
+  // 3. Verify job.status === "ASSIGNED"
+  if (job.status !== JobStatus.ASSIGNED) {
+    throw new BadRequestError("Job is not in ASSIGNED status");
+  }
+
+  // 4. Set job.status → "COMPLETED"
+  const updatedJob = await prisma.job.update({
+    where: { id: jobId },
+    data: { status: JobStatus.COMPLETED },
+  });
+
+  return updatedJob;
 };

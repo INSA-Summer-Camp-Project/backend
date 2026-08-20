@@ -2,7 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getPublicJobs } from "@/controllers/job.controller";
-import type { PaginationDto } from "@/dtos/common.dto";
 import * as jobService from "@/services/job.service";
 import { sendSuccess } from "@/utils/response.util";
 
@@ -23,7 +22,7 @@ describe("Job Controller", () => {
 
   beforeEach(() => {
     mockReq = {
-      query: { page: "1", limit: "10" } as any,
+      query: { page: "1", limit: "10" } as Record<string, string>,
     };
     mockRes = {
       status: vi.fn().mockReturnThis(),
@@ -50,10 +49,11 @@ describe("Job Controller", () => {
           : never,
       );
 
-      await getPublicJobs(mockReq as Request, mockRes as Response, mockNext);
+      getPublicJobs(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(jobService.getPublicJobs).toHaveBeenCalledWith(
-        { page: 1, limit: 10 },
+        { page: "1", limit: "10" },
         undefined,
       );
       expect(sendSuccess).toHaveBeenCalledWith(
@@ -68,7 +68,8 @@ describe("Job Controller", () => {
       const error = new Error("Database error");
       vi.mocked(jobService.getPublicJobs).mockRejectedValue(error);
 
-      await getPublicJobs(mockReq as Request, mockRes as Response, mockNext);
+      getPublicJobs(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
       expect(sendSuccess).not.toHaveBeenCalled();

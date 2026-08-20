@@ -73,7 +73,8 @@ describe("Telegram Controller", () => {
         new URL("https://telegram.org/auth"),
       );
 
-      await login(mockReq as Request, mockRes as Response, mockNext);
+      login(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(setTelegramOidcTransaction).toHaveBeenCalledWith(mockRes, {
         state: "mock-state",
@@ -91,7 +92,8 @@ describe("Telegram Controller", () => {
         throw error;
       });
 
-      await login(mockReq as Request, mockRes as Response, mockNext);
+      login(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });
@@ -119,7 +121,8 @@ describe("Telegram Controller", () => {
 
       vi.mocked(stringifySetCookie).mockReturnValue("access_token=jwt-token");
 
-      await callback(mockReq as Request, mockRes as Response, mockNext);
+      callback(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(telegramService.handleCallback).toHaveBeenCalledWith(
         expect.any(URL),
@@ -139,7 +142,8 @@ describe("Telegram Controller", () => {
     it("should throw UnauthorizedError if transaction cookie is missing", async () => {
       vi.mocked(getTelegramOidcTransaction).mockReturnValue(null);
 
-      await callback(mockReq as Request, mockRes as Response, mockNext);
+      callback(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(UnauthorizedError));
     });
@@ -154,7 +158,8 @@ describe("Telegram Controller", () => {
       const error = new Error("Auth failed");
       vi.mocked(telegramService.handleCallback).mockRejectedValue(error);
 
-      await callback(mockReq as Request, mockRes as Response, mockNext);
+      callback(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

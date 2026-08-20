@@ -1,3 +1,4 @@
+import type { SystemRole } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -5,12 +6,11 @@ import { getUploadSignature } from "@/controllers/upload.controller";
 import * as uploadService from "@/services/upload.service";
 import { sendSuccess } from "@/utils/response.util";
 
-// Mock the service
 vi.mock("@/services/upload.service", () => ({
   generateUploadSignature: vi.fn(),
+  deleteFile: vi.fn(),
 }));
 
-// Mock response utility
 vi.mock("@/utils/response.util", () => ({
   sendSuccess: vi.fn(),
 }));
@@ -21,7 +21,10 @@ describe("Upload Controller", () => {
   let mockNext: NextFunction;
 
   beforeEach(() => {
-    mockReq = {};
+    mockReq = {
+      user: { id: "user-1", role: "USER" as SystemRole },
+      query: { uploadType: "profile" },
+    };
     mockRes = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
@@ -37,6 +40,7 @@ describe("Upload Controller", () => {
         timestamp: 123456789,
         cloudName: "cloud",
         apiKey: "key",
+        folder: "servicehub/user-1/profile",
       };
       vi.mocked(uploadService.generateUploadSignature).mockReturnValue(
         mockResult,
@@ -44,7 +48,10 @@ describe("Upload Controller", () => {
 
       getUploadSignature(mockReq as Request, mockRes as Response, mockNext);
 
-      expect(uploadService.generateUploadSignature).toHaveBeenCalled();
+      expect(uploadService.generateUploadSignature).toHaveBeenCalledWith(
+        "user-1",
+        "profile",
+      );
       expect(sendSuccess).toHaveBeenCalledWith(mockRes, mockResult);
     });
 
@@ -56,11 +63,9 @@ describe("Upload Controller", () => {
         },
       );
 
-      await getUploadSignature(
-        mockReq as Request,
-        mockRes as Response,
-        mockNext,
-      );
+      getUploadSignature(mockReq as Request, mockRes as Response, mockNext);
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

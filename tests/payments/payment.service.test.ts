@@ -29,10 +29,6 @@ vi.mock("@/lib/chapa/chapa.client", () => ({
   },
 }));
 
-vi.mock("@/services/application.service", () => ({
-  acceptAndAssignJob: vi.fn(),
-}));
-
 describe("Payment Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -58,11 +54,11 @@ describe("Payment Service", () => {
       ).rejects.toThrow("Not authorized to pay for this application");
     });
 
-    it("should throw error if job is not open", async () => {
+    it("should throw error if job is not open or assigned", async () => {
       vi.mocked(prisma.application.findUnique).mockResolvedValue({
         id: "app-1",
         status: ApplicationStatus.PENDING,
-        job: { customerId: "cust-1", status: JobStatus.ASSIGNED },
+        job: { customerId: "cust-1", status: JobStatus.COMPLETED },
       } as never);
 
       await expect(
@@ -112,7 +108,7 @@ describe("Payment Service", () => {
   });
 
   describe("handleSuccessfulPayment", () => {
-    it("should verify via Chapa and orchestrate application service", async () => {
+    it("should verify via Chapa and update payment status to PAID", async () => {
       const mockPayment = {
         id: "pay-1",
         txRef: "tx-123",
@@ -131,10 +127,6 @@ describe("Payment Service", () => {
         ...mockPayment,
         status: PaymentStatus.PAID,
       } as never);
-      vi.mocked(applicationService.acceptAndAssignJob).mockResolvedValue({
-        acceptedApp: { id: "app-1", status: ApplicationStatus.ACCEPTED },
-        assignedJob: { id: "job-1", status: JobStatus.ASSIGNED },
-      } as never);
 
       const result =
         await paymentWebhookService.handleSuccessfulPayment("tx-123");
@@ -144,17 +136,8 @@ describe("Payment Service", () => {
         where: { id: "pay-1" },
         data: { status: PaymentStatus.PAID },
       });
-      expect(applicationService.acceptAndAssignJob).toHaveBeenCalledWith(
-        prisma,
-        "app-1",
-      );
 
-      // @ts-expect-error typescript might complain if the mock types don't exactly match the inferred return type, but this is a test.
       expect(result.payment?.status).toBe(PaymentStatus.PAID);
-
-      if ("application" in result) {
-        expect(result.application?.status).toBe(ApplicationStatus.ACCEPTED);
-      }
     });
 
     it("should return early if already paid", async () => {

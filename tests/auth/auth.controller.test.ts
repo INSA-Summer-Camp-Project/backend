@@ -53,7 +53,8 @@ describe("Auth Controller", () => {
       const error = new Error("User not found");
       vi.mocked(authService.getCurrentUser).mockRejectedValue(error);
 
-      await getMe(mockReq as Request, mockRes as Response, mockNext);
+      getMe(mockReq as Request, mockRes as Response, mockNext);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
       expect(mockNext).toHaveBeenCalledWith(error);
     });

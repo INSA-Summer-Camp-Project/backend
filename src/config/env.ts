@@ -26,7 +26,7 @@ const envSchema = z.object({
     .string()
     .min(32, "TELEGRAM_OIDC_COOKIE_SECRET is required"),
 
-  CLOUDINARY_URL: z.string().url("CLOUDINARY_URL must be a valid URL"),
+  CLOUDINARY_URL: z.string().min(1, "CLOUDINARY_URL is required"),
 
   CHAPA_PUBLIC_KEY: z.string().min(1, "CHAPA_PUBLIC_KEY is required"),
   CHAPA_SECRET_KEY: z.string().min(1, "CHAPA_SECRET_KEY is required"),
