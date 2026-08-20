@@ -269,6 +269,9 @@ importers:
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
+      cloudinary:
+        specifier: ^2.10.1
+        version: 2.10.1
       cookie:
         specifier: ^2.0.1
         version: 2.0.1
@@ -1687,6 +1690,13 @@ packages:
       {
         integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==,
       }
+
+  cloudinary@2.10.1:
+    resolution:
+      {
+        integrity: sha512-0aqF/sGwm2dSM/Xse87EI5OpKcuX/hwoPPdUDTdUal6GMPKevtElcI3spcaeuzJJbcLkY3vJaF22q0u50VO5Lw==,
+      }
+    engines: { node: ">=9" }
 
   combined-stream@1.0.8:
     resolution:
@@ -4530,6 +4540,10 @@ snapshots:
       readdirp: 5.1.1
 
   classnames@2.5.1: {}
+
+  cloudinary@2.10.1:
+    dependencies:
+      lodash: 4.18.1
 
   combined-stream@1.0.8:
     dependencies:

@@ -9,6 +9,11 @@ describe("Category Integration Tests (/api/v1/categories)", () => {
   let userToken: string;
 
   beforeEach(async () => {
+    await prisma.review.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.notification.deleteMany();
+    await prisma.application.deleteMany();
+    await prisma.job.deleteMany();
     await prisma.certificate.deleteMany();
     await prisma.portfolio.deleteMany();
     await prisma.service.deleteMany();
