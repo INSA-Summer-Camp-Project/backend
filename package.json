@@ -12,9 +12,9 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "full-check" : "pnpm format:check && tsc --noEmit && pnpm lint && pnpm test",
+    "full-check": "pnpm format:check && tsc --noEmit && pnpm lint && pnpm test",
     "check": "pnpm format:check && tsc --noEmit && pnpm lint",
-    "pre-check" : "echo everything is working && exit 0",
+    "pre-check": "echo everything is working && exit 0",
     "prepare": "husky"
   },
   "lint-staged": {
