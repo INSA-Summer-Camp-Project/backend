@@ -36,13 +36,15 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
 
   beforeEach(async () => {
     // Wipe slate (respecting FK order)
-    await prisma.application.deleteMany();
-    await prisma.payment.deleteMany();
     await prisma.review.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.notification.deleteMany();
+    await prisma.application.deleteMany();
     await prisma.job.deleteMany();
-    await prisma.service.deleteMany();
-    await prisma.portfolio.deleteMany();
     await prisma.certificate.deleteMany();
+    await prisma.portfolio.deleteMany();
+    await prisma.service.deleteMany();
+    await prisma.category.deleteMany();
     await prisma.worker.deleteMany();
     await prisma.customerProfile.deleteMany();
     await prisma.user.deleteMany();
