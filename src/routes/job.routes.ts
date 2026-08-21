@@ -89,4 +89,7 @@ router.get(
   applicationController.getJobApplications,
 );
 
+// Customer & Worker: view mutual contact info for assigned/completed jobs
+router.get("/:id/contact", authenticate, jobController.getJobContact);
+
 export default router;

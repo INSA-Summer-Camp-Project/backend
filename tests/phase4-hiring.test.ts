@@ -36,13 +36,15 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
 
   beforeEach(async () => {
     // Wipe slate (respecting FK order)
-    await prisma.application.deleteMany();
-    await prisma.payment.deleteMany();
     await prisma.review.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.notification.deleteMany();
+    await prisma.application.deleteMany();
     await prisma.job.deleteMany();
-    await prisma.service.deleteMany();
-    await prisma.portfolio.deleteMany();
     await prisma.certificate.deleteMany();
+    await prisma.portfolio.deleteMany();
+    await prisma.service.deleteMany();
+    await prisma.category.deleteMany();
     await prisma.worker.deleteMany();
     await prisma.customerProfile.deleteMany();
     await prisma.user.deleteMany();
@@ -187,7 +189,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.jobs.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
       expect(res.body.meta).toHaveProperty("total");
       expect(res.body.meta).toHaveProperty("page");
     });
@@ -207,7 +209,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
 
       expect(res.status).toBe(200);
       expect(
-        res.body.jobs.every(
+        res.body.data.every(
           (j: { categoryId: string }) => j.categoryId === categoryId,
         ),
       ).toBe(true);

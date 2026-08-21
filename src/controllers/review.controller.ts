@@ -1,17 +1,12 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 import * as reviewService from "@/services/review.service";
 import * as reputationService from "@/services/reputation.service";
 import { prisma } from "@/lib/prisma";
+import { sendSuccess } from "@/utils/response.util";
+import { asyncHandler } from "@/utils/async-handler";
 
-// ---------------------------------------------------------------------------
-// POST /api/v1/reviews — submit review for completed job
-// ---------------------------------------------------------------------------
-export const createReview = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
+export const createReview = asyncHandler(
+  async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
       select: { lastActiveRole: true },
@@ -23,78 +18,42 @@ export const createReview = async (
       activeRole,
       req.body,
     );
-    res.status(201).json({ success: true, data: review });
-  } catch (err) {
-    next(err);
-  }
-};
+    sendSuccess(res, review, 201);
+  },
+);
 
-// ---------------------------------------------------------------------------
-// GET /api/v1/workers/:id/reviews — public reviews for a worker
-// ---------------------------------------------------------------------------
-export const getWorkerReviews = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
+export const getWorkerReviews = asyncHandler(
+  async (req: Request, res: Response) => {
     const workerId = String(req.params.id);
     const result = await reviewService.getWorkerReviews(
       workerId,
       req.query as never,
     );
-    res.status(200).json({ success: true, ...result });
-  } catch (err) {
-    next(err);
-  }
-};
+    sendSuccess(res, result.data, 200, result.meta);
+  },
+);
 
-// ---------------------------------------------------------------------------
-// GET /api/v1/customers/:id/reviews — public reviews for a customer
-// ---------------------------------------------------------------------------
-export const getCustomerReviews = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
+export const getCustomerReviews = asyncHandler(
+  async (req: Request, res: Response) => {
     const customerId = String(req.params.id);
     const result = await reviewService.getCustomerReviews(
       customerId,
       req.query as { page?: number; limit?: number },
     );
-    res.status(200).json(result);
-  } catch (err) {
-    next(err);
-  }
-};
+    sendSuccess(res, result.data, 200, result.meta);
+  },
+);
 
-// ---------------------------------------------------------------------------
-// GET /api/v1/workers/:id/reputation — public reputation analytics
-// ---------------------------------------------------------------------------
-export const getWorkerReputation = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
+export const getWorkerReputation = asyncHandler(
+  async (req: Request, res: Response) => {
     const workerId = String(req.params.id);
     const data = await reputationService.getWorkerReputation(workerId);
-    res.status(200).json({ success: true, data });
-  } catch (err) {
-    next(err);
-  }
-};
+    sendSuccess(res, data);
+  },
+);
 
-// ---------------------------------------------------------------------------
-// GET /api/v1/reviews/my — user's reviews (authored or received)
-// ---------------------------------------------------------------------------
-export const getMyReviews = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
+export const getMyReviews = asyncHandler(
+  async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
       select: { lastActiveRole: true },
@@ -103,50 +62,30 @@ export const getMyReviews = async (
       req.user!.id,
       user?.lastActiveRole ?? null,
     );
-    res.status(200).json({ success: true, data: reviews });
-  } catch (err) {
-    next(err);
-  }
-};
+    sendSuccess(res, reviews);
+  },
+);
 
-// ---------------------------------------------------------------------------
-// PUT /api/v1/reviews/:id — update review within 48h
-// ---------------------------------------------------------------------------
-export const updateReview = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
+export const updateReview = asyncHandler(
+  async (req: Request, res: Response) => {
     const reviewId = String(req.params.id);
     const review = await reviewService.updateReview(
       req.user!.id,
       reviewId,
       req.body,
     );
-    res.status(200).json({ success: true, data: review });
-  } catch (err) {
-    next(err);
-  }
-};
+    sendSuccess(res, review);
+  },
+);
 
-// ---------------------------------------------------------------------------
-// DELETE /api/v1/reviews/:id — delete review (author or admin)
-// ---------------------------------------------------------------------------
-export const deleteReview = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
+export const deleteReview = asyncHandler(
+  async (req: Request, res: Response) => {
     const reviewId = String(req.params.id);
     const result = await reviewService.deleteReview(
       req.user!.id,
       req.user!.role,
       reviewId,
     );
-    res.status(200).json(result);
-  } catch (err) {
-    next(err);
-  }
-};
+    sendSuccess(res, result);
+  },
+);

@@ -8,10 +8,11 @@
     "build": "tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "vitest run",
+    "test": "vitest run --fileParallelism=false --maxConcurrency=1",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "pre-check": "pnpm format:check && tsc --noEmit && pnpm lint",
     "check": "pnpm format:check && tsc --noEmit && pnpm lint && pnpm test",
     "prepare": "husky"
   },

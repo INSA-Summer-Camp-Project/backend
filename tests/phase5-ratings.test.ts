@@ -34,16 +34,17 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
   beforeEach(async () => {
     // Clean database in FK order
     await prisma.review.deleteMany();
-    await prisma.application.deleteMany();
     await prisma.payment.deleteMany();
+    await prisma.notification.deleteMany();
+    await prisma.application.deleteMany();
     await prisma.job.deleteMany();
-    await prisma.service.deleteMany();
-    await prisma.portfolio.deleteMany();
     await prisma.certificate.deleteMany();
+    await prisma.portfolio.deleteMany();
+    await prisma.service.deleteMany();
+    await prisma.category.deleteMany();
     await prisma.worker.deleteMany();
     await prisma.customerProfile.deleteMany();
     await prisma.user.deleteMany();
-    await prisma.category.deleteMany();
 
     // Category
     const cat = await prisma.category.create({
@@ -519,7 +520,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
       );
 
       expect(res.status).toBe(200);
-      expect(res.body.data.length).toBe(1);
+      expect(res.body.data).toHaveLength(1);
       expect(res.body.data[0].rating).toBe(5);
       expect(res.body.data[0].comment).toBe(
         "Great customer! Clear instructions and fast payment.",
@@ -544,7 +545,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.length).toBe(1);
+      expect(res.body.data).toHaveLength(1);
       expect(res.body.data[0].rating).toBe(5);
       expect(res.body.meta.total).toBe(1);
     });
@@ -561,7 +562,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.length).toBe(1);
+      expect(res.body.data).toHaveLength(1);
     });
   });
 });

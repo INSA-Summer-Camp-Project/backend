@@ -55,6 +55,7 @@ const workerDetailSelect = {
       title: true,
       description: true,
       imageUrl: true,
+      imagePublicId: true,
       createdAt: true,
     },
   },
@@ -63,6 +64,7 @@ const workerDetailSelect = {
       id: true,
       title: true,
       fileUrl: true,
+      filePublicId: true,
       issuedDate: true,
     },
   },
@@ -396,6 +398,9 @@ export const createPortfolio = async (
       workerId: worker.id,
       title: data.title,
       imageUrl: data.imageUrl,
+      ...(data.imagePublicId !== undefined && {
+        imagePublicId: data.imagePublicId,
+      }),
       ...(data.description !== undefined && { description: data.description }),
     },
   });
@@ -437,6 +442,9 @@ export const createCertificate = async (
       workerId: worker.id,
       title: data.title,
       fileUrl: data.fileUrl,
+      ...(data.filePublicId !== undefined && {
+        filePublicId: data.filePublicId,
+      }),
       issuedDate: data.issuedDate ? new Date(data.issuedDate) : null,
     },
   });

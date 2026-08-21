@@ -28,4 +28,4 @@ else
 fi
 
 echo "🔍 Running full pre-commit checks (Format, Types, Lint, Tests)..."
-pnpm check || exit 1
+pnpm pre-check || exit 1

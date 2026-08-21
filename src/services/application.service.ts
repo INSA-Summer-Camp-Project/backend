@@ -10,6 +10,7 @@ import {
   BadRequestError,
   ConflictError,
 } from "@/middlewares/error.middleware";
+import { createNotification } from "@/services/notification.service";
 import type { CreateApplicationDto } from "@/dtos/application.dto";
 
 // ---------------------------------------------------------------------------
@@ -41,7 +42,10 @@ const categorySelect = { id: true, name: true };
 // Helpers
 // ---------------------------------------------------------------------------
 const getWorkerOrThrow = async (userId: string) => {
-  const worker = await prisma.worker.findUnique({ where: { userId } });
+  const worker = await prisma.worker.findUnique({
+    where: { userId },
+    include: { user: { select: { id: true, name: true } } },
+  });
   if (!worker) throw new ForbiddenError("Worker profile not found");
   return worker;
 };
@@ -49,6 +53,7 @@ const getWorkerOrThrow = async (userId: string) => {
 const getCustomerProfileOrThrow = async (userId: string) => {
   const profile = await prisma.customerProfile.findUnique({
     where: { userId },
+    include: { user: { select: { id: true, name: true } } },
   });
   if (!profile) throw new ForbiddenError("Customer profile not found");
   return profile;
@@ -94,7 +99,7 @@ export const applyToJob = async (
     throw new ConflictError("You have already submitted a bid on this job");
   }
 
-  return prisma.application.create({
+  const application = await prisma.application.create({
     data: {
       jobId,
       workerId: worker.id,
@@ -113,6 +118,17 @@ export const applyToJob = async (
       worker: { select: workerPublicSelect },
     },
   });
+
+  // Notify customer of the new proposal
+  await createNotification(
+    job.customer.userId,
+    "New Proposal Received",
+    `${worker.user?.name || "A worker"} submitted a proposal of ${data.proposedPrice} ETB for "${job.title}".`,
+    "NEW_PROPOSAL",
+    `/customer/jobs/${job.id}`,
+  ).catch(() => {});
+
+  return application;
 };
 
 // ---------------------------------------------------------------------------
@@ -170,7 +186,10 @@ export const acceptApplication = async (
 
   const application = await prisma.application.findUnique({
     where: { id: applicationId },
-    include: { job: true },
+    include: {
+      job: true,
+      worker: { select: { userId: true } },
+    },
   });
 
   if (!application) throw new NotFoundError("Application not found");
@@ -218,6 +237,15 @@ export const acceptApplication = async (
     }),
   ]);
 
+  // Notify winning worker
+  await createNotification(
+    application.worker.userId,
+    "Proposal Accepted! 🎉",
+    `Your proposal for "${updatedJob.title}" has been accepted! You can now view client contact details.`,
+    "PROPOSAL_ACCEPTED",
+    `/worker/jobs/${updatedJob.id}`,
+  ).catch(() => {});
+
   return { application: acceptedApp, job: updatedJob };
 };
 
@@ -232,17 +260,32 @@ export const rejectApplication = async (
 
   const application = await prisma.application.findUnique({
     where: { id: applicationId },
-    include: { job: { select: { customerId: true, status: true } } },
+    include: {
+      job: {
+        select: { id: true, title: true, customerId: true, status: true },
+      },
+      worker: { select: { userId: true } },
+    },
   });
   if (!application) throw new NotFoundError("Application not found");
   if (application.job.customerId !== profile.id) {
     throw new ForbiddenError("You do not own the job this bid belongs to");
   }
 
-  return prisma.application.update({
+  const rejected = await prisma.application.update({
     where: { id: applicationId },
     data: { status: APP_STATUS_REJECTED },
   });
+
+  await createNotification(
+    application.worker.userId,
+    "Proposal Update",
+    `Your proposal for "${application.job.title}" was not accepted.`,
+    "PROPOSAL_REJECTED",
+    `/worker/jobs/${application.job.id}`,
+  ).catch(() => {});
+
+  return rejected;
 };
 
 // ---------------------------------------------------------------------------
