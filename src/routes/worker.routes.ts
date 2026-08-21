@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as workerController from "@/controllers/worker.controller";
-import { authenticate } from "@/middlewares/auth.middleware";
-import { requireRole } from "@/middlewares/role.middleware";
+import { authenticate, requireActiveRole } from "@/middlewares/auth.middleware";
 import { validate } from "@/middlewares/validate.middleware";
 import {
   UpdateWorkerProfileSchema,
@@ -21,7 +20,7 @@ router.get(
   workerController.getWorkers,
 );
 
-const workerOnly = [authenticate, requireRole(["WORKER"])];
+const workerOnly = [authenticate, requireActiveRole("WORKER")];
 
 // Profile (Me)
 router.get("/me", ...workerOnly, workerController.getMyProfile);

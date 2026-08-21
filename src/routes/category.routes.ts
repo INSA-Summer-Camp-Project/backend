@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as categoryController from "@/controllers/category.controller";
-import { authenticate } from "@/middlewares/auth.middleware";
-import { requireRole } from "@/middlewares/role.middleware";
+import { authenticate, authorize } from "@/middlewares/auth.middleware";
 import { validate } from "@/middlewares/validate.middleware";
 import { CreateCategorySchema } from "@/dtos/category.dto";
 
@@ -12,7 +11,7 @@ router.get("/", categoryController.getCategories);
 router.post(
   "/",
   authenticate,
-  requireRole(["ADMIN"]),
+  authorize(["ADMIN"]),
   validate(CreateCategorySchema),
   categoryController.createCategory,
 );

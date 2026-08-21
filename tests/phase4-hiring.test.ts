@@ -187,7 +187,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.jobs.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
       expect(res.body.meta).toHaveProperty("total");
       expect(res.body.meta).toHaveProperty("page");
     });
@@ -207,7 +207,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
 
       expect(res.status).toBe(200);
       expect(
-        res.body.jobs.every(
+        res.body.data.every(
           (j: { categoryId: string }) => j.categoryId === categoryId,
         ),
       ).toBe(true);
