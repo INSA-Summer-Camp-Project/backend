@@ -4,16 +4,14 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
 
-  PORT: z.coerce.number().int().positive().default(3000),
+  PORT: z.coerce.number().int().positive(),
 
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
+  NODE_ENV: z.enum(["development", "test", "production"]),
 
-  FRONTEND_URL: z.string().default("http://localhost:3000"),
+  FRONTEND_URL: z.string(),
 
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
-  JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
+  JWT_ACCESS_EXPIRES_IN: z.string(),
 
   TELEGRAM_CLIENT_ID: z.string().min(1, "TELEGRAM_CLIENT_ID is required"),
   TELEGRAM_CLIENT_SECRET: z

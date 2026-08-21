@@ -34,6 +34,7 @@ router.get(
   authController.adminOnlySample,
 );
 
+router.get("/telegram/url", telegramController.getAuthUrl);
 router.post("/telegram", telegramController.verify);
 
 export default router;

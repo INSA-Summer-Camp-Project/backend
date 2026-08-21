@@ -7,21 +7,49 @@ import * as authService from "@/services/auth.service";
 import { env } from "@/config/env";
 import { UnauthorizedError } from "@/middlewares/error.middleware";
 
+export const getAuthUrl = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const authData = await telegramService.generateTelegramAuthUrl();
+    res.status(200).json({
+      success: true,
+      data: authData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const verify = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { idToken } = req.body;
+    const { currentUrl, state, codeVerifier } = req.body;
 
-    if (!idToken || typeof idToken !== "string") {
-      throw new UnauthorizedError("Missing or invalid idToken");
+    if (!currentUrl || typeof currentUrl !== "string") {
+      throw new UnauthorizedError("Missing or invalid currentUrl");
+    }
+    if (!state || typeof state !== "string") {
+      throw new UnauthorizedError("Missing or invalid state");
+    }
+    if (!codeVerifier || typeof codeVerifier !== "string") {
+      throw new UnauthorizedError("Missing or invalid codeVerifier");
     }
 
-    const telegramIdentity =
-      await telegramService.verifyTelegramIdToken(idToken);
+    console.log("verify endpoint hit with:", { currentUrl, state, codeVerifier });
+
+    console.log("Calling telegramService.verifyTelegramCode...");
+    const telegramIdentity = await telegramService.verifyTelegramCode(currentUrl, state, codeVerifier);
+    console.log("telegramIdentity received:", telegramIdentity);
+
+    console.log("Calling authService.loginWithTelegram...");
     const result = await authService.loginWithTelegram(telegramIdentity);
+    console.log("Login successful for user:", result.user.id);
 
     const isProduction = env.NODE_ENV === "production";
 

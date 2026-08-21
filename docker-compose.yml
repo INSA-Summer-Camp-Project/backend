@@ -31,7 +31,7 @@ services:
     restart: always
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 5000
       DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-backend_db}?schema=public"
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       JWT_SECRET: ${JWT_SECRET}
@@ -49,7 +49,7 @@ services:
       CHAPA_RETURN_URL: ${CHAPA_RETURN_URL}
       CHAPA_CALLBACK_URL: ${CHAPA_CALLBACK_URL}
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-5000}:5000"
     depends_on:
       postgres:
         condition: service_healthy

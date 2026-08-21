@@ -11,41 +11,64 @@ export type TelegramIdentity = {
   phone_number?: string;
 };
 
-export const verifyTelegramIdToken = async (
-  idToken: string,
+export const generateTelegramAuthUrl = async (): Promise<{ url: string; state: string; codeVerifier: string }> => {
+  const config = await getTelegramConfiguration();
+
+  const state = oidc.randomState();
+  const codeVerifier = oidc.randomPKCECodeVerifier();
+  const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier);
+
+  const url = oidc.buildAuthorizationUrl(config, {
+    client_id: env.TELEGRAM_CLIENT_ID,
+    redirect_uri: env.TELEGRAM_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid",
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
+  });
+
+  return {
+    url: url.href,
+    state,
+    codeVerifier,
+  };
+};
+
+export const verifyTelegramCode = async (
+  currentUrlString: string,
+  expectedState: string,
+  pkceCodeVerifier: string,
 ): Promise<TelegramIdentity> => {
   const config = await getTelegramConfiguration();
 
-  // Allow implicit flow ID Token response
-  oidc.useIdTokenResponseType(config);
-
-  // We construct a fake redirect URL containing the ID token in the hash
-  // This simulates the redirect that the browser would normally do, so openid-client can parse it
-  const url = new URL(env.TELEGRAM_REDIRECT_URI);
-  url.hash = `id_token=${idToken}`;
-
-  // If the frontend passed a nonce to Telegram, it will be in the ID Token.
-  // We extract it unverified first just to pass it to openid-client, which will then verify the signature.
-  const parts = idToken.split(".");
-  if (parts.length !== 3) {
-    throw new Error("Invalid ID token format");
-  }
-  const payload = JSON.parse(
-    Buffer.from(parts[1] as string, "base64").toString("utf-8"),
-  );
-  const nonce = payload.nonce ?? ""; // implicitAuthentication expects a string, so we pass empty string if no nonce
-
-  let claims;
+  let tokens;
   try {
-    claims = await oidc.implicitAuthentication(config, url, nonce as string);
+    console.log("Calling oidc.authorizationCodeGrant...");
+    const url = new URL(currentUrlString);
+    tokens = await oidc.authorizationCodeGrant(
+      config,
+      url,
+      {
+        expectedState: expectedState,
+        pkceCodeVerifier: pkceCodeVerifier,
+      },
+      {
+        redirect_uri: env.TELEGRAM_REDIRECT_URI,
+      }
+    );
+    console.log("Tokens received from Telegram OIDC");
   } catch (error) {
+    console.error("oidc.authorizationCodeGrant failed:", error);
     throw new Error(
-      `Telegram ID token validation failed: ${error instanceof Error ? error.message : String(error)}`,
+      `Telegram code validation failed: ${error instanceof Error ? error.message : String(error)}`,
       { cause: error },
     );
   }
 
-  if (!claims.sub) {
+  const claims = tokens.claims();
+
+  if (!claims?.sub) {
     throw new Error("Telegram ID token is missing subject");
   }
 
