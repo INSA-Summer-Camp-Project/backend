@@ -3,13 +3,22 @@ import * as authController from "@/controllers/auth.controller";
 import * as telegramController from "@/controllers/telegram.controller";
 import { authenticate, authorize } from "@/middlewares/auth.middleware";
 import { validate } from "@/middlewares/validate.middleware";
-import { UpdateRoleDtoSchema } from "@/dtos/auth.dto";
+import { UpdateRoleDtoSchema, OnboardUserDtoSchema } from "@/dtos/auth.dto";
 
 const router: Router = Router();
 
 router.get("/me", authenticate, authController.getMe);
 
-router.post("/logout", authenticate, authController.logout);
+router.post("/logout", authController.logout);
+
+router.post(
+  "/onboard",
+  authenticate,
+  validate(OnboardUserDtoSchema),
+  authController.onboard,
+);
+
+router.post("/refresh", authController.refresh);
 
 router.put(
   "/role",
@@ -25,8 +34,6 @@ router.get(
   authController.adminOnlySample,
 );
 
-router.get("/telegram", telegramController.login);
-
-router.get("/telegram/callback", telegramController.callback);
+router.post("/telegram", telegramController.verify);
 
 export default router;

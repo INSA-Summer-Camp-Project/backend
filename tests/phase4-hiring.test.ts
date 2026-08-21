@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 import type { UserPublicDto } from "@/dtos/auth.dto";
 
 // ---------------------------------------------------------------------------
@@ -61,7 +62,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
       role: "CUSTOMER",
     });
     await switchRole(customerUser.id, "CUSTOMER");
-    customerToken = generateTokens(customerUser.id, "USER").accessToken;
+    customerToken = (await generateTokens(customerUser.id, "USER")).accessToken;
 
     // Worker A
     workerUser = await registerUser({
@@ -69,7 +70,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
       role: "WORKER",
     });
     await switchRole(workerUser.id, "WORKER");
-    workerToken = generateTokens(workerUser.id, "USER").accessToken;
+    workerToken = (await generateTokens(workerUser.id, "USER")).accessToken;
     workerId = workerUser.worker!.id;
 
     // Worker B
@@ -78,7 +79,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
       role: "WORKER",
     });
     await switchRole(workerBUser.id, "WORKER");
-    workerBToken = generateTokens(workerBUser.id, "USER").accessToken;
+    workerBToken = (await generateTokens(workerBUser.id, "USER")).accessToken;
   });
 
   // -------------------------------------------------------------------------
@@ -252,10 +253,8 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
         data: { userId: customerUser.id, experienceYears: 0, ratingAvg: 0 },
       });
       await switchRole(customerUser.id, "WORKER");
-      const selfWorkerToken = generateTokens(
-        customerUser.id,
-        "USER",
-      ).accessToken;
+      const selfWorkerToken = (await generateTokens(customerUser.id, "USER"))
+        .accessToken;
 
       const res = await request(app)
         .post(`/api/v1/jobs/${jobId}/apply`)
@@ -344,9 +343,8 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
     });
 
     it("Ownership guard: non-owner cannot accept a bid", async () => {
-      const workerAsCustomerToken = generateTokens(
-        workerUser.id,
-        "USER",
+      const workerAsCustomerToken = (
+        await generateTokens(workerUser.id, "USER")
       ).accessToken;
       await switchRole(workerUser.id, "CUSTOMER");
 

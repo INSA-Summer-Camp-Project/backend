@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 import type { UserPublicDto } from "@/dtos/auth.dto";
 import type { Category } from "@prisma/client";
 
@@ -38,7 +39,7 @@ describe("Contact Reveal Tests (/api/v1/jobs/:id/contact)", () => {
       where: { id: customerUser.id },
       data: { phone: "+251911223344", lastActiveRole: "CUSTOMER" },
     });
-    customerToken = generateTokens(customerUser.id, "USER").accessToken;
+    customerToken = (await generateTokens(customerUser.id, "USER")).accessToken;
 
     workerUser = await registerUser({
       name: "Worker Bob",
@@ -50,14 +51,15 @@ describe("Contact Reveal Tests (/api/v1/jobs/:id/contact)", () => {
       where: { id: workerUser.id },
       data: { phone: "+251922334455", lastActiveRole: "WORKER" },
     });
-    workerToken = generateTokens(workerUser.id, "USER").accessToken;
+    workerToken = (await generateTokens(workerUser.id, "USER")).accessToken;
 
     thirdPartyUser = await registerUser({
       name: "Third Party Charlie",
       telegramId: "tg_charlie_contact",
       systemRole: "USER",
     });
-    thirdPartyToken = generateTokens(thirdPartyUser.id, "USER").accessToken;
+    thirdPartyToken = (await generateTokens(thirdPartyUser.id, "USER"))
+      .accessToken;
 
     category = await prisma.category.create({
       data: { name: "Plumbing Contact Test" },

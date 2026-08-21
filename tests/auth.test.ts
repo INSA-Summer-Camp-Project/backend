@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { registerUser } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 
 describe("Auth Integration Tests", () => {
   beforeEach(async () => {

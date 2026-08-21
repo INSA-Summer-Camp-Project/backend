@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 
 describe("Admin Integration Tests (/api/v1/admin)", () => {
   let adminToken: string;
@@ -27,14 +28,14 @@ describe("Admin Integration Tests (/api/v1/admin)", () => {
       telegramId: "tg_admin_test",
       systemRole: "ADMIN",
     });
-    adminToken = generateTokens(admin.id, "ADMIN").accessToken;
+    adminToken = (await generateTokens(admin.id, "ADMIN")).accessToken;
 
     const user = await registerUser({
       name: "Regular User",
       telegramId: "tg_regular_user",
       systemRole: "USER",
     });
-    userToken = generateTokens(user.id, "USER").accessToken;
+    userToken = (await generateTokens(user.id, "USER")).accessToken;
   });
 
   it("GET /api/v1/admin/stats should return dashboard stats", async () => {

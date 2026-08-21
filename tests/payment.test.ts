@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 import { chapaClient } from "@/lib/chapa/chapa.client";
 import type { UserPublicDto } from "@/dtos/auth.dto";
 import type { Category, Job, Application } from "@prisma/client";
@@ -39,7 +40,7 @@ describe("Payment Integration Tests (/api/v1/payments)", () => {
       where: { id: customerUser.id },
       data: { lastActiveRole: "CUSTOMER" },
     });
-    customerToken = generateTokens(customerUser.id, "USER").accessToken;
+    customerToken = (await generateTokens(customerUser.id, "USER")).accessToken;
 
     workerUser = await registerUser({
       name: "Worker Dave",
@@ -51,7 +52,7 @@ describe("Payment Integration Tests (/api/v1/payments)", () => {
       where: { id: workerUser.id },
       data: { lastActiveRole: "WORKER" },
     });
-    workerToken = generateTokens(workerUser.id, "USER").accessToken;
+    workerToken = (await generateTokens(workerUser.id, "USER")).accessToken;
 
     category = await prisma.category.create({
       data: { name: "Payment Category Test" },
