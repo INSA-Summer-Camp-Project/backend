@@ -12,16 +12,28 @@ router.get(
   applicationController.getMyApplications,
 );
 
-// Customer: accept a specific bid (atomic transaction)
+// Customer: accept a specific bid (atomic transaction) - support both POST and PATCH
 router.post(
   "/:id/accept",
   authenticate,
   requireActiveRole("CUSTOMER"),
   applicationController.acceptApplication,
 );
+router.patch(
+  "/:id/accept",
+  authenticate,
+  requireActiveRole("CUSTOMER"),
+  applicationController.acceptApplication,
+);
 
-// Customer: reject a specific bid
+// Customer: reject a specific bid - support both POST and PATCH
 router.post(
+  "/:id/reject",
+  authenticate,
+  requireActiveRole("CUSTOMER"),
+  applicationController.rejectApplication,
+);
+router.patch(
   "/:id/reject",
   authenticate,
   requireActiveRole("CUSTOMER"),

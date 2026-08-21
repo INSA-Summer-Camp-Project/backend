@@ -16,10 +16,16 @@ import { prisma } from "@/lib/prisma";
 
 const PLATFORM_COMMISSION_RATE = 0.1;
 
-export const createCheckout = async (
-  customerId: string,
-  applicationId: string,
-) => {
+export const createCheckout = async (userId: string, applicationId: string) => {
+  const customer = await prisma.customerProfile.findUnique({
+    where: { userId },
+    include: { user: true },
+  });
+
+  if (!customer) {
+    throw new ForbiddenError("Customer profile not found for this user");
+  }
+
   const application = await prisma.application.findUnique({
     where: { id: applicationId },
     include: { job: true },
@@ -29,7 +35,7 @@ export const createCheckout = async (
     throw new NotFoundError("Application not found");
   }
 
-  if (application.job.customerId !== customerId) {
+  if (application.job.customerId !== customer.id) {
     throw new ForbiddenError("Not authorized to pay for this application");
   }
 
@@ -44,13 +50,6 @@ export const createCheckout = async (
   if (application.status !== ApplicationStatus.PENDING) {
     throw new BadRequestError("Application is not in a pending state");
   }
-
-  const customer = await prisma.customerProfile.findUnique({
-    where: { id: customerId },
-    include: { user: true },
-  });
-
-  if (!customer) throw new NotFoundError("Customer not found");
 
   const shortId = applicationId.replace(/-/g, "").slice(0, 8);
   const shortTs = Date.now().toString().slice(-6);

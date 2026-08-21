@@ -6,6 +6,7 @@ import {
   BadRequestError,
   ConflictError,
 } from "@/middlewares/error.middleware";
+import { createNotification } from "@/services/notification.service";
 import type {
   CreateJobDto,
   CreateDirectJobDto,
@@ -136,7 +137,7 @@ export const createDirectJob = async (
   });
   if (!category) throw new NotFoundError("Category not found");
 
-  return prisma.job.create({
+  const job = await prisma.job.create({
     data: {
       customerId: customerProfile.id,
       categoryId: data.categoryId,
@@ -153,6 +154,17 @@ export const createDirectJob = async (
       targetWorker: { select: workerPublicSelect },
     },
   });
+
+  // Notify target worker
+  await createNotification(
+    targetWorker.userId,
+    "Direct Job Offer Received",
+    `You have received a direct hire request for "${job.title}".`,
+    "DIRECT_HIRE",
+    `/worker/jobs/${job.id}`,
+  ).catch(() => {});
+
+  return job;
 };
 
 // ---------------------------------------------------------------------------
@@ -344,26 +356,56 @@ export const respondToDirectJob = async (
   }
 
   if (data.action === "ACCEPT") {
-    return prisma.job.update({
+    const updated = await prisma.job.update({
       where: { id: jobId },
       data: { status: JOB_STATUS_IN_PROGRESS, assignedWorkerId: worker.id },
       include: {
         category: { select: categorySelect },
-        customer: { select: customerPublicSelect },
+        customer: {
+          select: {
+            ...customerPublicSelect,
+            userId: true,
+          },
+        },
         assignedWorker: { select: workerPublicSelect },
       },
     });
+
+    await createNotification(
+      updated.customer.userId,
+      "Direct Hire Accepted 🎉",
+      `The worker accepted your direct hire request for "${job.title}".`,
+      "DIRECT_HIRE_ACCEPTED",
+      `/customer/jobs/${job.id}`,
+    ).catch(() => {});
+
+    return updated;
   }
 
   // DECLINE
-  return prisma.job.update({
+  const declined = await prisma.job.update({
     where: { id: jobId },
     data: { status: JOB_STATUS_DECLINED },
     include: {
       category: { select: categorySelect },
-      customer: { select: customerPublicSelect },
+      customer: {
+        select: {
+          ...customerPublicSelect,
+          userId: true,
+        },
+      },
     },
   });
+
+  await createNotification(
+    declined.customer.userId,
+    "Direct Hire Declined",
+    `The worker declined your direct hire request for "${job.title}".`,
+    "DIRECT_HIRE_DECLINED",
+    `/customer/jobs/${job.id}`,
+  ).catch(() => {});
+
+  return declined;
 };
 
 // ---------------------------------------------------------------------------
@@ -415,15 +457,125 @@ export const updateJobStatus = async (
     );
   }
 
-  return prisma.job.update({
+  const updatedJob = await prisma.job.update({
     where: { id: jobId },
     data: { status: data.status as JobStatus },
     include: {
       category: { select: categorySelect },
-      customer: { select: customerPublicSelect },
-      assignedWorker: { select: workerPublicSelect },
+      customer: {
+        select: {
+          ...customerPublicSelect,
+          userId: true,
+        },
+      },
+      assignedWorker: {
+        select: {
+          ...workerPublicSelect,
+          userId: true,
+        },
+      },
     },
   });
+
+  if (data.status === "COMPLETED") {
+    if (isCustomer && updatedJob.assignedWorker) {
+      await createNotification(
+        updatedJob.assignedWorker.userId,
+        "Job Marked Completed 🎉",
+        `The customer has marked "${updatedJob.title}" as completed. Please leave a review!`,
+        "JOB_COMPLETED",
+        `/worker/jobs/${updatedJob.id}`,
+      ).catch(() => {});
+    } else if (isAssignedWorker) {
+      await createNotification(
+        updatedJob.customer.userId,
+        "Job Marked Completed 🎉",
+        `The worker has marked "${updatedJob.title}" as completed. Please leave a review!`,
+        "JOB_COMPLETED",
+        `/customer/jobs/${updatedJob.id}`,
+      ).catch(() => {});
+    }
+  }
+
+  return updatedJob;
+};
+
+// ---------------------------------------------------------------------------
+// 9. Get mutual contact info (only for hired / in-progress / completed jobs)
+// ---------------------------------------------------------------------------
+export const getJobContact = async (jobId: string, userId: string) => {
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    include: {
+      customer: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              telegramId: true,
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      },
+      assignedWorker: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              telegramId: true,
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!job) {
+    throw new NotFoundError("Job not found");
+  }
+
+  if (!job.assignedWorker) {
+    throw new BadRequestError(
+      "Contact information is only available once a worker is assigned to the job",
+    );
+  }
+
+  const isCustomer = job.customer.userId === userId;
+  const isWorker = job.assignedWorker.userId === userId;
+
+  if (!isCustomer && !isWorker) {
+    throw new ForbiddenError(
+      "Only the customer and assigned worker can access contact details for this job",
+    );
+  }
+
+  if (isCustomer) {
+    return {
+      counterpartRole: "WORKER",
+      contact: {
+        name: job.assignedWorker.user.name,
+        telegramId: job.assignedWorker.user.telegramId,
+        phone: job.assignedWorker.user.phone,
+        email: job.assignedWorker.user.email,
+      },
+    };
+  }
+
+  return {
+    counterpartRole: "CUSTOMER",
+    contact: {
+      name: job.customer.user.name,
+      telegramId: job.customer.user.telegramId,
+      phone: job.customer.user.phone,
+      email: job.customer.user.email,
+    },
+  };
 };
 
 // Barrel re-export (used by application.service)

@@ -6,6 +6,7 @@ import {
   BadRequestError,
   ConflictError,
 } from "@/middlewares/error.middleware";
+import { createNotification } from "@/services/notification.service";
 import type {
   CreateReviewDto,
   UpdateReviewDto,
@@ -121,7 +122,7 @@ export const createReview = async (
     );
   }
 
-  return prisma.$transaction(async (tx) => {
+  const createdReview = await prisma.$transaction(async (tx) => {
     const review = await tx.review.create({
       data: {
         jobId: job.id,
@@ -141,6 +142,27 @@ export const createReview = async (
 
     return review;
   });
+
+  // Notify the reviewed party
+  if (reviewerRole === "CUSTOMER_TO_WORKER") {
+    await createNotification(
+      job.assignedWorker.userId,
+      "New Review Received ⭐",
+      `You received a ${data.rating}-star review for "${job.title}".`,
+      "NEW_REVIEW",
+      `/worker/jobs/${job.id}`,
+    ).catch(() => {});
+  } else {
+    await createNotification(
+      job.customer.userId,
+      "New Review Received ⭐",
+      `You received a ${data.rating}-star review for "${job.title}".`,
+      "NEW_REVIEW",
+      `/customer/jobs/${job.id}`,
+    ).catch(() => {});
+  }
+
+  return createdReview;
 };
 
 // ---------------------------------------------------------------------------

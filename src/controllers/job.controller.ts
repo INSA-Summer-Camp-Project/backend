@@ -73,3 +73,13 @@ export const updateJobStatus = asyncHandler(
     sendSuccess(res, job);
   },
 );
+
+export const getJobContact = asyncHandler(
+  async (req: Request, res: Response) => {
+    const contact = await jobService.getJobContact(
+      String(req.params.id),
+      req.user!.id,
+    );
+    sendSuccess(res, contact);
+  },
+);
