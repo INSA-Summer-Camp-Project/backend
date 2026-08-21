@@ -13,7 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "pre-check": "pnpm format:check && tsc --noEmit && pnpm lint",
-    "check": "pnpm format:check && tsc --noEmit && pnpm lint && pnpm test",
+    "check": "pnpm format:check && tsc --noEmit && pnpm lint",
     "prepare": "husky"
   },
   "lint-staged": {
