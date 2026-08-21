@@ -1,21 +1,30 @@
 import jwt from "jsonwebtoken";
-import type { ActiveRole } from "@prisma/client";
+import type { ActiveRole, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/config/env";
-import { BadRequestError, NotFoundError } from "@/middlewares/error.middleware";
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+} from "@/middlewares/error.middleware";
 import type {
   UserPublicDto,
   AuthTokensDto,
   LoginResponseDto,
-  RegisterUserDto,
+  OnboardUserDto,
 } from "@/dtos/auth.dto";
+import { generateRandomToken, hashToken } from "@/utils/crypto.util";
 
 const userSelect = {
   id: true,
   name: true,
+  avatarUrl: true,
   telegramId: true,
   systemRole: true,
   lastActiveRole: true,
+  isOnboarded: true,
+  birthdate: true,
+  gender: true,
   createdAt: true,
   updatedAt: true,
   customerProfile: {
@@ -39,18 +48,96 @@ const userSelect = {
 
 type JwtExpiresIn = NonNullable<jwt.SignOptions["expiresIn"]>;
 
-export const generateTokens = (userId: string, role: string): AuthTokensDto => {
+export const createAccessToken = (userId: string, role: string): string => {
   const accessOptions: jwt.SignOptions = {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as JwtExpiresIn,
   };
 
-  const accessToken = jwt.sign(
-    { id: userId, role },
-    env.JWT_SECRET,
-    accessOptions,
-  );
+  return jwt.sign({ id: userId, role }, env.JWT_SECRET, accessOptions);
+};
 
-  return { accessToken };
+export const createRefreshToken = async (
+  tx: Prisma.TransactionClient,
+  userId: string,
+): Promise<string> => {
+  const rawRefreshToken = generateRandomToken();
+  const tokenHash = hashToken(rawRefreshToken);
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+  await tx.refreshToken.create({
+    data: {
+      userId,
+      tokenHash,
+      expiresAt,
+    },
+  });
+
+  return rawRefreshToken;
+};
+
+export const generateTokenPair = async (
+  userId: string,
+  role: string,
+): Promise<AuthTokensDto> => {
+  const accessToken = createAccessToken(userId, role);
+  const refreshToken = await createRefreshToken(prisma, userId);
+  return { accessToken, refreshToken };
+};
+
+export const verifyAndRotateRefreshToken = async (
+  rawRefreshToken: string,
+): Promise<AuthTokensDto> => {
+  const tokenHash = hashToken(rawRefreshToken);
+
+  const tokenRecord = await prisma.refreshToken.findUnique({
+    where: { tokenHash },
+    include: { user: { select: { id: true, systemRole: true } } },
+  });
+
+  if (!tokenRecord) {
+    throw new UnauthorizedError("Invalid refresh token");
+  }
+
+  if (tokenRecord.revokedAt) {
+    throw new UnauthorizedError("Refresh token has been revoked");
+  }
+
+  if (new Date() > tokenRecord.expiresAt) {
+    throw new UnauthorizedError("Refresh token has expired");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    // Revoke the old token
+    await tx.refreshToken.update({
+      where: { id: tokenRecord.id },
+      data: { revokedAt: new Date() },
+    });
+
+    // Generate new tokens
+    const accessToken = createAccessToken(
+      tokenRecord.userId,
+      tokenRecord.user.systemRole,
+    );
+    const refreshToken = await createRefreshToken(tx, tokenRecord.userId);
+    return { accessToken, refreshToken };
+  });
+};
+
+export const revokeRefreshToken = async (
+  rawRefreshToken: string,
+): Promise<void> => {
+  const tokenHash = hashToken(rawRefreshToken);
+  await prisma.refreshToken.updateMany({
+    where: { tokenHash, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+};
+
+export const revokeAllUserTokens = async (userId: string): Promise<void> => {
+  await prisma.refreshToken.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
 };
 
 export const getCurrentUser = async (
@@ -99,41 +186,40 @@ export const updateActiveRole = async (
   return updatedUser as unknown as UserPublicDto;
 };
 
-export const registerUser = async (
-  data: RegisterUserDto,
+export const onboardUser = async (
+  userId: string,
+  data: OnboardUserDto,
 ): Promise<UserPublicDto> => {
-  const isWorker = data.role === "WORKER";
-  const user = await prisma.user.create({
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  if (user.isOnboarded) {
+    throw new BadRequestError("User is already onboarded");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
     data: {
       name: data.name,
-      telegramId:
-        data.telegramId ??
-        `tg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      systemRole: data.systemRole ?? "USER",
-      lastActiveRole: data.role ?? "CUSTOMER",
-      customerProfile: {
-        create: {},
-      },
-      ...(isWorker && {
-        worker: {
-          create: {
-            experienceYears: 0,
-            ratingAvg: 0.0,
-          },
-        },
-      }),
+      birthdate: new Date(data.birthdate),
+      gender: data.gender,
+      lastActiveRole: data.activeRole,
+      isOnboarded: true,
     },
     select: userSelect,
   });
 
-  return user as unknown as UserPublicDto;
+  return updatedUser as unknown as UserPublicDto;
 };
 
 export const loginWithTelegram = async (telegram: {
   sub: string;
-  name?: string;
-  preferred_username?: string;
-  avatarUrl?: string;
+  name?: string | null;
+  preferred_username?: string | null;
+  avatarUrl?: string | null;
 }): Promise<LoginResponseDto> => {
   let user = await prisma.user.findUnique({
     where: { telegramId: telegram.sub },
@@ -145,6 +231,7 @@ export const loginWithTelegram = async (telegram: {
       const newUser = await tx.user.create({
         data: {
           name: telegram.name ?? telegram.preferred_username ?? "Telegram User",
+          avatarUrl: telegram.avatarUrl || null,
           telegramId: telegram.sub,
           systemRole: "USER",
         },
@@ -154,18 +241,43 @@ export const loginWithTelegram = async (telegram: {
         data: { userId: newUser.id },
       });
 
+      await tx.worker.create({
+        data: {
+          userId: newUser.id,
+          experienceYears: 0,
+          ratingAvg: 0.0,
+        },
+      });
+
       return tx.user.findUnique({
         where: { id: newUser.id },
         select: userSelect,
       });
     });
+  } else {
+    // If the user exists, we should still update their name and avatar
+    // in case they changed it on Telegram.
+    const telegramName =
+      telegram.name ?? telegram.preferred_username ?? "Telegram User";
+
+    // Only update if something changed to avoid unnecessary DB writes
+    if (user.name !== telegramName || user.avatarUrl !== telegram.avatarUrl) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name: telegramName,
+          avatarUrl: telegram.avatarUrl || null,
+        },
+        select: userSelect,
+      });
+    }
   }
 
   if (!user) {
     throw new BadRequestError("Telegram account creation failed");
   }
 
-  const tokens = generateTokens(user.id, user.systemRole);
+  const tokens = await generateTokenPair(user.id, user.systemRole);
 
   return {
     user: user as unknown as UserPublicDto,

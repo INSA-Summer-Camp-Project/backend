@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 import type { UserPublicDto } from "@/dtos/auth.dto";
 
 // ---------------------------------------------------------------------------
@@ -61,7 +62,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
       role: "CUSTOMER",
     });
     await switchRole(customerUser.id, "CUSTOMER");
-    customerToken = generateTokens(customerUser.id, "USER").accessToken;
+    customerToken = (await generateTokens(customerUser.id, "USER")).accessToken;
 
     // Worker A
     workerUser = await registerUser({
@@ -69,7 +70,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
       role: "WORKER",
     });
     await switchRole(workerUser.id, "WORKER");
-    workerToken = generateTokens(workerUser.id, "USER").accessToken;
+    workerToken = (await generateTokens(workerUser.id, "USER")).accessToken;
     workerId = workerUser.worker!.id;
 
     // Worker B
@@ -78,7 +79,7 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
       role: "WORKER",
     });
     await switchRole(workerBUser.id, "WORKER");
-    workerBToken = generateTokens(workerBUser.id, "USER").accessToken;
+    workerBToken = (await generateTokens(workerBUser.id, "USER")).accessToken;
   });
 
   // -------------------------------------------------------------------------
@@ -152,24 +153,24 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
     });
 
     it("Anti-self-hire guard: customer cannot book their own worker profile", async () => {
-      // Make the customer also a worker
-      const workerProfile = await prisma.worker.create({
-        data: { userId: customerUser.id, experienceYears: 0, ratingAvg: 0 },
+      // The customer already has a worker profile (created during registration)
+      const workerProfile = await prisma.worker.findUnique({
+        where: { userId: customerUser.id },
       });
 
-      const res = await request(app)
+      const response = await request(app)
         .post("/api/v1/jobs/direct")
         .set("Authorization", `Bearer ${customerToken}`)
         .send({
-          targetWorkerId: workerProfile.id,
-          categoryId,
-          title: "Should Fail Self Hire",
-          description: "This should be blocked by the anti-self-hire guard",
-          budget: 100,
+          targetWorkerId: workerProfile!.id,
+          categoryId: categoryId,
+          title: "Fix my plumbing",
+          description: "Need someone to fix the kitchen sink urgently",
+          budget: 500,
         });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error.message).toMatch(/own worker/i);
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toMatch(/own worker/i);
     });
   });
 
@@ -248,24 +249,19 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
     });
 
     it("Anti-self-bidding guard: customer cannot bid on their own job", async () => {
-      const selfWorker = await prisma.worker.create({
-        data: { userId: customerUser.id, experienceYears: 0, ratingAvg: 0 },
-      });
+      // Switch the customer to WORKER role so the request passes requireActiveRole("WORKER")
+      // and reaches the service-level anti-self-bid guard.
       await switchRole(customerUser.id, "WORKER");
-      const selfWorkerToken = generateTokens(
-        customerUser.id,
-        "USER",
-      ).accessToken;
+      const selfWorkerToken = (await generateTokens(customerUser.id, "USER"))
+        .accessToken;
 
       const res = await request(app)
         .post(`/api/v1/jobs/${jobId}/apply`)
         .set("Authorization", `Bearer ${selfWorkerToken}`)
-        .send({ proposedPrice: 100, estimatedTime: "1 day" });
+        .send({ proposedPrice: 1500, estimatedTime: "1 Day" });
 
       expect(res.status).toBe(400);
-      expect(res.body.error.message).toMatch(/own job/i);
-
-      await prisma.worker.delete({ where: { id: selfWorker.id } });
+      expect(res.body.error.message).toMatch(/apply to your own/i);
     });
 
     it("Duplicate bid guard: same worker cannot bid twice on the same job", async () => {
@@ -344,9 +340,8 @@ describe("Phase 4 — Hiring System Integration Tests", () => {
     });
 
     it("Ownership guard: non-owner cannot accept a bid", async () => {
-      const workerAsCustomerToken = generateTokens(
-        workerUser.id,
-        "USER",
+      const workerAsCustomerToken = (
+        await generateTokens(workerUser.id, "USER")
       ).accessToken;
       await switchRole(workerUser.id, "CUSTOMER");
 

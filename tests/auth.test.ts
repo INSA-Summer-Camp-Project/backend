@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { registerUser } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 
 describe("Auth Integration Tests", () => {
   beforeEach(async () => {
@@ -34,21 +34,5 @@ describe("Auth Integration Tests", () => {
     });
     expect(workerInDb).toBeDefined();
     expect(workerInDb?.userId).toBe(workerUser.id);
-  });
-
-  it("should not create a Worker record when registering with role CUSTOMER", async () => {
-    const customerUser = await registerUser({
-      name: "Jane Customer",
-      telegramId: "tg_654321",
-      role: "CUSTOMER",
-    });
-
-    expect(customerUser).toBeDefined();
-    expect(customerUser.worker).toBeNull();
-
-    const workerInDb = await prisma.worker.findUnique({
-      where: { userId: customerUser.id },
-    });
-    expect(workerInDb).toBeNull();
   });
 });

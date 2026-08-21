@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 import type { UserPublicDto } from "@/dtos/auth.dto";
 
 describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
@@ -38,7 +39,7 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
       telegramId: "tg_worker_a",
       role: "WORKER",
     });
-    workerAToken = generateTokens(workerAUser.id, "WORKER").accessToken;
+    workerAToken = (await generateTokens(workerAUser.id, "WORKER")).accessToken;
 
     // Worker B
     workerBUser = await registerUser({
@@ -46,7 +47,7 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
       telegramId: "tg_worker_b",
       role: "WORKER",
     });
-    workerBToken = generateTokens(workerBUser.id, "WORKER").accessToken;
+    workerBToken = (await generateTokens(workerBUser.id, "WORKER")).accessToken;
   });
 
   describe("Worker Profile Endpoints", () => {

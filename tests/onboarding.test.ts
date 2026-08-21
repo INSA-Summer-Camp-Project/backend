@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 
 describe("Onboarding Integration Tests (/api/v1/onboarding)", () => {
   let userToken: string;
@@ -28,7 +29,7 @@ describe("Onboarding Integration Tests (/api/v1/onboarding)", () => {
       systemRole: "USER",
     });
     userId = user.id;
-    userToken = generateTokens(user.id, "USER").accessToken;
+    userToken = (await generateTokens(user.id, "USER")).accessToken;
   });
 
   it("GET /api/v1/onboarding should return onboarding status", async () => {

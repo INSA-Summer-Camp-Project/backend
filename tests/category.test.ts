@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 
 describe("Category Integration Tests (/api/v1/categories)", () => {
   let adminToken: string;
@@ -27,14 +28,14 @@ describe("Category Integration Tests (/api/v1/categories)", () => {
       telegramId: "tg_admin_cat",
       systemRole: "ADMIN",
     });
-    adminToken = generateTokens(admin.id, "ADMIN").accessToken;
+    adminToken = (await generateTokens(admin.id, "ADMIN")).accessToken;
 
     const normalUser = await registerUser({
       name: "Normal User",
       telegramId: "tg_user_cat",
       systemRole: "USER",
     });
-    userToken = generateTokens(normalUser.id, "USER").accessToken;
+    userToken = (await generateTokens(normalUser.id, "USER")).accessToken;
   });
 
   it("GET /api/v1/categories should return all categories publicly", async () => {
@@ -48,7 +49,7 @@ describe("Category Integration Tests (/api/v1/categories)", () => {
     const res = await request(app).get("/api/v1/categories");
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.length).toBe(2);
+    expect(res.body.data).toHaveLength(2);
     expect(res.body.data[0]._count).toBeDefined();
   });
 

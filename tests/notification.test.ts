@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 
 describe("Notification Integration Tests (/api/v1/notifications)", () => {
   let customerToken: string;
@@ -28,7 +29,7 @@ describe("Notification Integration Tests (/api/v1/notifications)", () => {
       systemRole: "USER",
     });
     customerId = customer.id;
-    customerToken = generateTokens(customer.id, "USER").accessToken;
+    customerToken = (await generateTokens(customer.id, "USER")).accessToken;
   });
 
   it("GET /api/v1/notifications should return empty list initially", async () => {

@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import app from "@/app";
 import { prisma } from "@/lib/prisma";
-import { registerUser, generateTokens } from "@/services/auth.service";
+import { generateTokenPair as generateTokens } from "@/services/auth.service";
+import { registerTestUser as registerUser } from "./auth.helper";
 import type { UserPublicDto } from "@/dtos/auth.dto";
 import { JobSource, JobStatus, ReviewerRole } from "@prisma/client";
 
@@ -58,7 +59,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
       role: "CUSTOMER",
     });
     await switchRole(customerUser.id, "CUSTOMER");
-    customerToken = generateTokens(customerUser.id, "USER").accessToken;
+    customerToken = (await generateTokens(customerUser.id, "USER")).accessToken;
 
     const custProf = await prisma.customerProfile.findUniqueOrThrow({
       where: { userId: customerUser.id },
@@ -71,7 +72,8 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
       role: "CUSTOMER",
     });
     await switchRole(customerUserB.id, "CUSTOMER");
-    customerTokenB = generateTokens(customerUserB.id, "USER").accessToken;
+    customerTokenB = (await generateTokens(customerUserB.id, "USER"))
+      .accessToken;
 
     // Worker
     workerUser = await registerUser({
@@ -79,7 +81,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
       role: "WORKER",
     });
     await switchRole(workerUser.id, "WORKER");
-    workerToken = generateTokens(workerUser.id, "USER").accessToken;
+    workerToken = (await generateTokens(workerUser.id, "USER")).accessToken;
     workerId = workerUser.worker!.id;
 
     // Create a completed job for Customer A & Worker
@@ -166,7 +168,7 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
       const reviews = await prisma.review.findMany({
         where: { jobId: completedJobId },
       });
-      expect(reviews.length).toBe(2);
+      expect(reviews).toHaveLength(2);
     });
 
     it("Validation: rejects ratings outside 1–5 or non-integer ratings", async () => {
@@ -268,7 +270,8 @@ describe("Phase 5 — Ratings, Reviews & Reputation System (Bidirectional)", () 
         role: "WORKER",
       });
       await switchRole(comboUser.id, "CUSTOMER");
-      const comboToken = generateTokens(comboUser.id, "USER").accessToken;
+      const comboToken = (await generateTokens(comboUser.id, "USER"))
+        .accessToken;
 
       const customerProfile = await prisma.customerProfile.findUniqueOrThrow({
         where: { userId: comboUser.id },
