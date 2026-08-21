@@ -128,7 +128,7 @@ describe("Auth Refresh & Logout", () => {
     const refreshCookie = cookies.find((c: string) =>
       c.startsWith("refresh_token="),
     );
-    expect(refreshCookie).toContain("Max-Age=0"); // Or expires past date
+    expect(refreshCookie).toMatch(/Expires=Thu, 01 Jan 1970 00:00:00 GMT/);
 
     // Verify revoked in DB
     const token = await prisma.refreshToken.findUnique({

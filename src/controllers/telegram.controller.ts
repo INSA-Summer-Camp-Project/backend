@@ -41,14 +41,25 @@ export const verify = async (
       throw new UnauthorizedError("Missing or invalid codeVerifier");
     }
 
-    console.log("verify endpoint hit with:", { currentUrl, state, codeVerifier });
+    console.log("verify endpoint hit with:", {
+      currentUrl,
+      state,
+      codeVerifier,
+    });
 
     console.log("Calling telegramService.verifyTelegramCode...");
-    const telegramIdentity = await telegramService.verifyTelegramCode(currentUrl, state, codeVerifier);
+    const telegramIdentity = await telegramService.verifyTelegramCode(
+      currentUrl,
+      state,
+      codeVerifier,
+    );
     console.log("telegramIdentity received:", telegramIdentity);
 
     console.log("Calling authService.loginWithTelegram...");
-    const result = await authService.loginWithTelegram(telegramIdentity);
+    const result = await authService.loginWithTelegram({
+      ...telegramIdentity,
+      avatarUrl: telegramIdentity.picture || null,
+    });
     console.log("Login successful for user:", result.user.id);
 
     const isProduction = env.NODE_ENV === "production";

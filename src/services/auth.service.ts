@@ -18,6 +18,7 @@ import { generateRandomToken, hashToken } from "@/utils/crypto.util";
 const userSelect = {
   id: true,
   name: true,
+  avatarUrl: true,
   telegramId: true,
   systemRole: true,
   lastActiveRole: true,
@@ -216,9 +217,9 @@ export const onboardUser = async (
 
 export const loginWithTelegram = async (telegram: {
   sub: string;
-  name?: string;
-  preferred_username?: string;
-  avatarUrl?: string;
+  name?: string | null;
+  preferred_username?: string | null;
+  avatarUrl?: string | null;
 }): Promise<LoginResponseDto> => {
   let user = await prisma.user.findUnique({
     where: { telegramId: telegram.sub },
@@ -230,6 +231,7 @@ export const loginWithTelegram = async (telegram: {
       const newUser = await tx.user.create({
         data: {
           name: telegram.name ?? telegram.preferred_username ?? "Telegram User",
+          avatarUrl: telegram.avatarUrl || null,
           telegramId: telegram.sub,
           systemRole: "USER",
         },
@@ -252,6 +254,23 @@ export const loginWithTelegram = async (telegram: {
         select: userSelect,
       });
     });
+  } else {
+    // If the user exists, we should still update their name and avatar
+    // in case they changed it on Telegram.
+    const telegramName =
+      telegram.name ?? telegram.preferred_username ?? "Telegram User";
+
+    // Only update if something changed to avoid unnecessary DB writes
+    if (user.name !== telegramName || user.avatarUrl !== telegram.avatarUrl) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name: telegramName,
+          avatarUrl: telegram.avatarUrl || null,
+        },
+        select: userSelect,
+      });
+    }
   }
 
   if (!user) {

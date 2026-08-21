@@ -22,6 +22,7 @@ export interface UserPublicDto {
   id: string;
   name: string;
   telegramId: string | null;
+  avatarUrl?: string | null;
   systemRole: SystemRole;
   lastActiveRole: ActiveRole | null;
   isOnboarded: boolean;

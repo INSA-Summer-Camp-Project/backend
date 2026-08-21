@@ -11,7 +11,11 @@ export type TelegramIdentity = {
   phone_number?: string;
 };
 
-export const generateTelegramAuthUrl = async (): Promise<{ url: string; state: string; codeVerifier: string }> => {
+export const generateTelegramAuthUrl = async (): Promise<{
+  url: string;
+  state: string;
+  codeVerifier: string;
+}> => {
   const config = await getTelegramConfiguration();
 
   const state = oidc.randomState();
@@ -55,7 +59,7 @@ export const verifyTelegramCode = async (
       },
       {
         redirect_uri: env.TELEGRAM_REDIRECT_URI,
-      }
+      },
     );
     console.log("Tokens received from Telegram OIDC");
   } catch (error) {
