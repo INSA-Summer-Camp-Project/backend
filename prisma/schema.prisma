@@ -54,6 +54,21 @@ enum ApplicationStatus {
   WITHDRAWN
 }
 
+enum ReportReason {
+  SCAM
+  INAPPROPRIATE_BEHAVIOR
+  NO_SHOW
+  POOR_QUALITY
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
 enum ReviewerRole {
   CUSTOMER_TO_WORKER
   WORKER_TO_CUSTOMER
@@ -97,6 +112,8 @@ model User {
   customerProfile CustomerProfile?
   worker          Worker?
   notifications   Notification[]
+  reportsMade     Report[]        @relation("Reporter")
+  reportsReceived Report[]        @relation("Reported")
 
   @@index([telegramId])
 }
@@ -211,6 +228,7 @@ model Job {
   applications   Application[]
   payments       Payment[]
   reviews        Review[]
+  reports        Report[]
 
   @@index([customerId])
   @@index([categoryId, status])
@@ -303,4 +321,24 @@ model Notification {
 
   @@index([userId])
   @@index([userId, isRead])
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  reporterId  String
+  reportedId  String
+  jobId       String?
+  reason      ReportReason
+  description String       @db.Text
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  reporter    User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported    User         @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  job         Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([reportedId])
+  @@index([status])
 }

@@ -5,8 +5,10 @@ import {
   CreateCategoryDtoSchema,
   UpdateUserRoleDtoSchema,
 } from "@/dtos/admin.dto";
+import { UpdateReportStatusDtoSchema } from "@/dtos/report.dto";
 import { authenticate, authorize } from "@/middlewares/auth.middleware";
 import { validate } from "@/middlewares/validate.middleware";
+import * as reportController from "@/controllers/report.controller";
 
 const router: Router = Router();
 
@@ -30,5 +32,13 @@ router.post(
   adminController.createCategory,
 );
 router.delete("/categories/:id", adminController.deleteCategory);
+
+// Reports Management
+router.get("/reports", reportController.getAllReports);
+router.patch(
+  "/reports/:id/status",
+  validate(UpdateReportStatusDtoSchema),
+  reportController.updateReportStatus,
+);
 
 export default router;

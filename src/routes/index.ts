@@ -12,6 +12,7 @@ import paymentRouter from "@/routes/payment.routes";
 import uploadRouter from "@/routes/upload.routes";
 import notificationRouter from "@/routes/notification.routes";
 import onboardingRouter from "@/routes/onboarding.routes";
+import reportRouter from "@/routes/report.routes";
 import adminRouter from "@/routes/admin.routes";
 
 const router: Router = Router();
@@ -30,6 +31,7 @@ router.use("/reviews", reviewRouter);
 router.use("/payments", paymentRouter);
 router.use("/uploads", uploadRouter);
 router.use("/notifications", notificationRouter);
+router.use("/reports", reportRouter);
 router.use("/admin", adminRouter);
 
 export default router;
