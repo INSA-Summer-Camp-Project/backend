@@ -56,6 +56,21 @@ export const completeOnboarding = asyncHandler(
       );
     }
 
-    sendSuccess(res, { user }, 200);
+    if (user?.lastActiveRole) {
+      res.append(
+        "Set-Cookie",
+        stringifySetCookie({
+          name: "servicehub_active_role",
+          value: user.lastActiveRole,
+          httpOnly: false,
+          secure: isProduction,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 30 * 24 * 60 * 60,
+        }),
+      );
+    }
+
+    sendSuccess(res, { user, tokens }, 200);
   },
 );

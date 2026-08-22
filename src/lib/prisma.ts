@@ -8,7 +8,15 @@ let prismaInstance: PrismaClient | undefined;
 export const getPrisma = (): PrismaClient => {
   if (!prismaInstance) {
     const connectionString = env.DATABASE_URL;
-    const pool = new Pool({ connectionString });
+    const isRemote =
+      !connectionString.includes("localhost") &&
+      !connectionString.includes("127.0.0.1") &&
+      !connectionString.includes("@postgres:");
+
+    const pool = new Pool({
+      connectionString,
+      ssl: isRemote ? { rejectUnauthorized: false } : undefined,
+    });
     const adapter = new PrismaPg(pool);
 
     prismaInstance = new PrismaClient({ adapter });

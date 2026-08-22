@@ -1,21 +1,14 @@
 import type { Request, Response } from "express";
 import * as reviewService from "@/services/review.service";
 import * as reputationService from "@/services/reputation.service";
-import { prisma } from "@/lib/prisma";
 import { sendSuccess } from "@/utils/response.util";
 import { asyncHandler } from "@/utils/async-handler";
 
 export const createReview = asyncHandler(
   async (req: Request, res: Response) => {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.id },
-      select: { lastActiveRole: true },
-    });
-    const activeRole = user?.lastActiveRole || "CUSTOMER";
-
     const review = await reviewService.createReview(
       req.user!.id,
-      activeRole,
+      undefined,
       req.body,
     );
     sendSuccess(res, review, 201);
@@ -54,14 +47,7 @@ export const getWorkerReputation = asyncHandler(
 
 export const getMyReviews = asyncHandler(
   async (req: Request, res: Response) => {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.id },
-      select: { lastActiveRole: true },
-    });
-    const reviews = await reviewService.getMyReviews(
-      req.user!.id,
-      user?.lastActiveRole ?? null,
-    );
+    const reviews = await reviewService.getMyReviews(req.user!.id);
     sendSuccess(res, reviews);
   },
 );

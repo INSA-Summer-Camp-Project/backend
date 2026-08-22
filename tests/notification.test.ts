@@ -4,10 +4,15 @@ import app from "@/app";
 import { prisma } from "@/lib/prisma";
 import { generateTokenPair as generateTokens } from "@/services/auth.service";
 import { registerTestUser as registerUser } from "./auth.helper";
+import type { UserPublicDto } from "@/dtos/auth.dto";
 
-describe("Notification Integration Tests (/api/v1/notifications)", () => {
+describe("Profile-scoped Notification Integration Tests (/api/v1/notifications)", () => {
   let customerToken: string;
   let customerId: string;
+  let workerToken: string;
+  let workerId: string;
+  let customerProfileId: string;
+  let workerProfileId: string;
 
   beforeEach(async () => {
     await prisma.review.deleteMany();
@@ -27,14 +32,52 @@ describe("Notification Integration Tests (/api/v1/notifications)", () => {
       name: "Notif Customer",
       telegramId: "tg_notif_customer",
       systemRole: "USER",
+      role: "CUSTOMER",
     });
     customerId = customer.id;
     customerToken = (await generateTokens(customer.id, "USER")).accessToken;
+    const profile = await prisma.customerProfile.findUniqueOrThrow({
+      where: { userId: customerId },
+    });
+    customerProfileId = profile.id;
+
+    const worker = await registerUser({
+      name: "Notif Worker",
+      telegramId: "tg_notif_worker",
+      systemRole: "USER",
+      role: "WORKER",
+    });
+    workerId = worker.id;
+    workerToken = (await generateTokens(worker.id, "USER")).accessToken;
+    const wProfile = await prisma.worker.findUniqueOrThrow({
+      where: { userId: workerId },
+    });
+    workerProfileId = wProfile.id;
   });
 
-  it("GET /api/v1/notifications should return empty list initially", async () => {
+  const createCustomerNotif = () =>
+    prisma.notification.create({
+      data: {
+        customerProfileId,
+        title: "Customer Notification",
+        message: "You have a new proposal",
+        type: "NEW_PROPOSAL",
+      },
+    });
+
+  const createWorkerNotif = () =>
+    prisma.notification.create({
+      data: {
+        workerId: workerProfileId,
+        title: "Worker Notification",
+        message: "Your proposal was accepted",
+        type: "PROPOSAL_ACCEPTED",
+      },
+    });
+
+  it("GET /notifications/customer should return empty list initially", async () => {
     const res = await request(app)
-      .get("/api/v1/notifications")
+      .get("/api/v1/notifications/customer")
       .set("Authorization", `Bearer ${customerToken}`);
 
     expect(res.status).toBe(200);
@@ -42,33 +85,71 @@ describe("Notification Integration Tests (/api/v1/notifications)", () => {
     expect(res.body.data).toEqual([]);
   });
 
-  it("GET /api/v1/notifications should require authentication", async () => {
-    const res = await request(app).get("/api/v1/notifications");
+  it("scoped inboxes should require authentication", async () => {
+    const res = await request(app).get("/api/v1/notifications/customer");
     expect(res.status).toBe(401);
+
+    const res2 = await request(app).get("/api/v1/notifications/worker");
+    expect(res2.status).toBe(401);
   });
 
-  it("GET /api/v1/notifications/unread-count should return 0 initially", async () => {
+  it("should reject wrong active role on scoped inboxes", async () => {
+    const asWorker = await request(app)
+      .get("/api/v1/notifications/customer")
+      .set("Authorization", `Bearer ${workerToken}`);
+    expect(asWorker.status).toBe(403);
+
+    const asCustomer = await request(app)
+      .get("/api/v1/notifications/worker")
+      .set("Authorization", `Bearer ${customerToken}`);
+    expect(asCustomer.status).toBe(403);
+  });
+
+  it("GET /notifications/customer should list only customer notifications", async () => {
+    await createCustomerNotif();
+
     const res = await request(app)
-      .get("/api/v1/notifications/unread-count")
+      .get("/api/v1/notifications/customer")
       .set("Authorization", `Bearer ${customerToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.count).toBe(0);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].type).toBe("NEW_PROPOSAL");
   });
 
-  it("PATCH /api/v1/notifications/:id/read should mark as read", async () => {
-    const notif = await prisma.notification.create({
-      data: {
-        userId: customerId,
-        title: "Test Notification",
-        message: "You have a new message",
-        type: "JOB_UPDATE",
-      },
-    });
+  it("should keep worker inbox isolated from customer notifications", async () => {
+    await createCustomerNotif();
 
     const res = await request(app)
-      .patch(`/api/v1/notifications/${notif.id}/read`)
+      .get("/api/v1/notifications/worker")
+      .set("Authorization", `Bearer ${workerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  it("unread-count should be scoped per inbox", async () => {
+    await createCustomerNotif();
+    await createWorkerNotif();
+
+    const customerRes = await request(app)
+      .get("/api/v1/notifications/customer/unread-count")
+      .set("Authorization", `Bearer ${customerToken}`);
+    const workerRes = await request(app)
+      .get("/api/v1/notifications/worker/unread-count")
+      .set("Authorization", `Bearer ${workerToken}`);
+
+    expect(customerRes.status).toBe(200);
+    expect(customerRes.body.data.count).toBe(1);
+    expect(workerRes.status).toBe(200);
+    expect(workerRes.body.data.count).toBe(1);
+  });
+
+  it("PATCH /customer/:id/read should mark as read within own scope", async () => {
+    const notif = await createCustomerNotif();
+
+    const res = await request(app)
+      .patch(`/api/v1/notifications/customer/${notif.id}/read`)
       .set("Authorization", `Bearer ${customerToken}`);
 
     expect(res.status).toBe(200);
@@ -80,34 +161,30 @@ describe("Notification Integration Tests (/api/v1/notifications)", () => {
     expect(updated?.isRead).toBe(true);
   });
 
-  it("PATCH /api/v1/notifications/read-all should mark all as read", async () => {
-    await prisma.notification.createMany({
-      data: [
-        {
-          userId: customerId,
-          title: "Notif 1",
-          message: "Message 1",
-          type: "JOB_UPDATE",
-        },
-        {
-          userId: customerId,
-          title: "Notif 2",
-          message: "Message 2",
-          type: "PAYMENT",
-        },
-      ],
-    });
+  it("PATCH :id/read should return 404 across scopes", async () => {
+    const notif = await createWorkerNotif();
 
     const res = await request(app)
-      .patch("/api/v1/notifications/read-all")
+      .patch(`/api/v1/notifications/customer/${notif.id}/read`)
+      .set("Authorization", `Bearer ${customerToken}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("PATCH read-all should only clear the caller's scope", async () => {
+    await createCustomerNotif();
+    await createWorkerNotif();
+
+    const res = await request(app)
+      .patch("/api/v1/notifications/customer/read-all")
       .set("Authorization", `Bearer ${customerToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
     const unread = await prisma.notification.count({
-      where: { userId: customerId, isRead: false },
+      where: { workerId: workerProfileId, isRead: false },
     });
-    expect(unread).toBe(0);
+    expect(unread).toBe(1);
   });
 });

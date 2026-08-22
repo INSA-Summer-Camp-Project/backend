@@ -7,6 +7,7 @@ export const registerTestUser = async (data: {
   telegramId?: string;
   role?: "CUSTOMER" | "WORKER";
   systemRole?: "USER" | "ADMIN";
+  isOnboarded?: boolean;
 }): Promise<UserPublicDto> => {
   const user = await prisma.user.create({
     data: {
@@ -14,7 +15,7 @@ export const registerTestUser = async (data: {
       telegramId: data.telegramId ?? `tg_test_${crypto.randomUUID()}`,
       systemRole: data.systemRole ?? "USER",
       lastActiveRole: data.role ?? "CUSTOMER",
-      isOnboarded: true,
+      isOnboarded: data.isOnboarded ?? true,
       birthdate: new Date("1990-01-01"),
       gender: "unspecified",
       customerProfile: { create: {} },

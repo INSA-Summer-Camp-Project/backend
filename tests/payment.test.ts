@@ -82,7 +82,7 @@ describe("Payment Integration Tests (/api/v1/payments)", () => {
         workerId: workerProfile.id,
         proposedPrice: 750,
         estimatedTime: "3 hours",
-        status: "PENDING",
+        status: "ACCEPTED",
       },
     });
   });
@@ -169,7 +169,7 @@ describe("Payment Integration Tests (/api/v1/payments)", () => {
 
     // Verify notifications were created
     const notifications = await prisma.notification.findMany({
-      where: { userId: customerUser.id },
+      where: { customerProfile: { userId: customerUser.id } },
     });
     expect(notifications.length).toBeGreaterThanOrEqual(1);
     expect(notifications[0]?.type).toBe("PAYMENT_SUCCESS");

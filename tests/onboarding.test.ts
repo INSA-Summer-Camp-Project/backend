@@ -27,6 +27,7 @@ describe("Onboarding Integration Tests (/api/v1/onboarding)", () => {
       name: "Onboard User",
       telegramId: "tg_onboard_user",
       systemRole: "USER",
+      isOnboarded: false,
     });
     userId = user.id;
     userToken = (await generateTokens(user.id, "USER")).accessToken;

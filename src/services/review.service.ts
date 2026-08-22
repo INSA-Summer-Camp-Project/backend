@@ -57,13 +57,20 @@ export const recalculateCustomerRatingAvg = async (
 };
 
 // ---------------------------------------------------------------------------
-// 1. Submit a bidirectional review for a completed job
-// ---------------------------------------------------------------------------
 export const createReview = async (
   userId: string,
-  activeRole: ActiveRole,
+  activeRole: ActiveRole | undefined,
   data: CreateReviewDto,
 ) => {
+  let role = activeRole;
+  if (!role) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastActiveRole: true },
+    });
+    role = user?.lastActiveRole ?? "CUSTOMER";
+  }
+
   const job = await prisma.job.findUnique({
     where: { id: data.jobId },
     include: {
@@ -93,18 +100,17 @@ export const createReview = async (
   const targetCustomerId = job.customerId;
   const targetWorkerId = job.assignedWorkerId;
 
-  if (activeRole === "CUSTOMER") {
-    if (job.customer.userId !== userId) {
-      throw new ForbiddenError("You are not the customer for this job");
-    }
+  const isCustomer = job.customer.userId === userId;
+  const isWorker = job.assignedWorker.userId === userId;
+
+  if (!isCustomer && !isWorker) {
+    throw new ForbiddenError("You are not a participant in this job contract");
+  }
+
+  if (isCustomer) {
     reviewerRole = "CUSTOMER_TO_WORKER";
-  } else if (activeRole === "WORKER") {
-    if (job.assignedWorker.userId !== userId) {
-      throw new ForbiddenError("You are not the assigned worker for this job");
-    }
-    reviewerRole = "WORKER_TO_CUSTOMER";
   } else {
-    throw new ForbiddenError("Invalid active role");
+    reviewerRole = "WORKER_TO_CUSTOMER";
   }
 
   // Unique Contract Review Guard for this role
@@ -314,7 +320,16 @@ export const getMyReviews = async (
   userId: string,
   activeRole?: ActiveRole | null,
 ) => {
-  if (activeRole === "WORKER") {
+  let role = activeRole;
+  if (!role) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastActiveRole: true },
+    });
+    role = user?.lastActiveRole ?? "CUSTOMER";
+  }
+
+  if (role === "WORKER") {
     const worker = await prisma.worker.findUnique({ where: { userId } });
     if (!worker) {
       throw new ForbiddenError("Worker profile not found");

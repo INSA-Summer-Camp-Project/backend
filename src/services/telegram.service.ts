@@ -77,6 +77,7 @@ export const verifyTelegramCode = async (
         Accept: "application/json",
       },
       body: tokenParams.toString(),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!tokenResponse.ok) {

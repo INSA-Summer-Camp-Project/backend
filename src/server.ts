@@ -1,3 +1,8 @@
+import dns from "node:dns";
+
+// Prefer IPv4 resolution to prevent Docker/WSL2 IPv6 timeout issues in fetch
+dns.setDefaultResultOrder("ipv4first");
+
 // Internal module imports using @/* path aliases
 import app from "@/app";
 import { env } from "@/config/env";

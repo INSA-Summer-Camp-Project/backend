@@ -86,11 +86,20 @@ export const requireActiveRole = (requiredRole: ActiveRole) => {
 
       const user = await prisma.user.findUnique({
         where: { id: req.user.id },
-        select: { lastActiveRole: true },
+        select: { lastActiveRole: true, isOnboarded: true },
       });
 
       if (!user) {
         next(new UnauthorizedError("User no longer exists"));
+        return;
+      }
+
+      if (!user.isOnboarded) {
+        next(
+          new ForbiddenError(
+            "Onboarding must be completed before accessing this resource",
+          ),
+        );
         return;
       }
 

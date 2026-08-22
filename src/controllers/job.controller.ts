@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 import * as jobService from "@/services/job.service";
-import { prisma } from "@/lib/prisma";
 import { sendSuccess } from "@/utils/response.util";
 import { asyncHandler } from "@/utils/async-handler";
 
@@ -24,14 +23,7 @@ export const getPublicJobs = asyncHandler(
 );
 
 export const getMyJobs = asyncHandler(async (req: Request, res: Response) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.user!.id },
-    select: { lastActiveRole: true },
-  });
-  const jobs = await jobService.getMyJobs(
-    req.user!.id,
-    user?.lastActiveRole ?? null,
-  );
+  const jobs = await jobService.getMyJobs(req.user!.id);
   sendSuccess(res, jobs);
 });
 

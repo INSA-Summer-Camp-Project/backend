@@ -219,9 +219,18 @@ export const getPublicJobs = async (query: JobQueryDto) => {
 // ---------------------------------------------------------------------------
 export const getMyJobs = async (
   userId: string,
-  lastActiveRole: "CUSTOMER" | "WORKER" | null,
+  lastActiveRole?: "CUSTOMER" | "WORKER" | null,
 ) => {
-  if (lastActiveRole === "CUSTOMER") {
+  let role = lastActiveRole;
+  if (!role) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastActiveRole: true },
+    });
+    role = user?.lastActiveRole ?? "CUSTOMER";
+  }
+
+  if (role === "CUSTOMER") {
     const profile = await getCustomerProfileOrThrow(userId);
     return prisma.job.findMany({
       where: { customerId: profile.id },
