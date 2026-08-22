@@ -11,8 +11,8 @@ export const handleSuccessfulPayment = async (txRef: string) => {
     include: {
       job: {
         include: {
-          customer: { select: { userId: true } },
-          assignedWorker: { select: { userId: true } },
+          customer: { select: { id: true, userId: true } },
+          assignedWorker: { select: { id: true, userId: true } },
         },
       },
     },
@@ -42,7 +42,7 @@ export const handleSuccessfulPayment = async (txRef: string) => {
   // Trigger notifications
   if (payment.job) {
     await createNotification(
-      payment.job.customer.userId,
+      { kind: "customer", customerProfileId: payment.job.customer.id },
       "Payment Successful",
       `Your payment of ${payment.amount} ETB for "${payment.job.title}" has been confirmed.`,
       "PAYMENT_SUCCESS",
@@ -51,7 +51,7 @@ export const handleSuccessfulPayment = async (txRef: string) => {
 
     if (payment.job.assignedWorker) {
       await createNotification(
-        payment.job.assignedWorker.userId,
+        { kind: "worker", workerId: payment.job.assignedWorker!.id },
         "Payment Secured in Escrow",
         `Payment of ${payment.amount} ETB for "${payment.job.title}" is now held in escrow.`,
         "PAYMENT_SUCCESS",
