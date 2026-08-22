@@ -119,7 +119,8 @@ export const verifyPayment = async (txRef: string, userId: string) => {
     where: { userId },
   });
 
-  const jobCustomerId = payment.job?.customerId || payment.application?.job.customerId;
+  const jobCustomerId =
+    payment.job?.customerId || payment.application?.job.customerId;
 
   if (!customer || jobCustomerId !== customer.id) {
     throw new ForbiddenError("Not authorized to view this payment");

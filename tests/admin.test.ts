@@ -155,7 +155,9 @@ describe("Admin Integration Tests (/api/v1/admin)", () => {
         .send({ role: "USER" });
 
       expect(res.status).toBe(400);
-      expect(res.body.error.message).toMatch(/Admins cannot demote themselves/i);
+      expect(res.body.error.message).toMatch(
+        /Admins cannot demote themselves/i,
+      );
     });
 
     it("should reject demoting the only remaining admin", async () => {

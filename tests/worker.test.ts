@@ -320,7 +320,9 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
         },
       });
 
-      const res = await request(app).get(`/api/v1/workers/${workerA.id}/reputation`);
+      const res = await request(app).get(
+        `/api/v1/workers/${workerA.id}/reputation`,
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);

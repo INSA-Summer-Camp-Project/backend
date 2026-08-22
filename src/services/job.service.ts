@@ -1,4 +1,9 @@
-import { Prisma, PaymentStatus, type JobSource, type JobStatus } from "@prisma/client";
+import {
+  Prisma,
+  PaymentStatus,
+  type JobSource,
+  type JobStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   NotFoundError,
