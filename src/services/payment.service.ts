@@ -13,6 +13,7 @@ import {
 } from "@/middlewares/error.middleware";
 import { chapaClient } from "@/lib/chapa/chapa.client";
 import { prisma } from "@/lib/prisma";
+import { handleSuccessfulPayment } from "@/services/payment-webhook.service";
 
 const PLATFORM_COMMISSION_RATE = 0.1;
 
@@ -102,6 +103,7 @@ export const verifyPayment = async (txRef: string, userId: string) => {
   const payment = await prisma.payment.findUnique({
     where: { txRef },
     include: {
+      job: true,
       application: {
         include: { job: true },
       },
@@ -117,35 +119,22 @@ export const verifyPayment = async (txRef: string, userId: string) => {
     where: { userId },
   });
 
-  if (
-    !customer ||
-    !payment.application ||
-    payment.application.job.customerId !== customer.id
-  ) {
+  const jobCustomerId = payment.job?.customerId || payment.application?.job.customerId;
+
+  if (!customer || jobCustomerId !== customer.id) {
     throw new ForbiddenError("Not authorized to view this payment");
   }
 
-  // Check with Chapa
-  try {
-    const chapaRes = await chapaClient.verifyPayment(txRef);
-
-    if (chapaRes.data?.status === "success" && payment.status !== PaymentStatus.PAID) {
-      await prisma.payment.update({
-        where: { txRef },
-        data: { status: PaymentStatus.PAID },
-      });
-      return PaymentStatus.PAID;
-    } else if (chapaRes.data?.status === "failed" && payment.status !== PaymentStatus.FAILED) {
-      await prisma.payment.update({
-        where: { txRef },
-        data: { status: PaymentStatus.FAILED },
-      });
-      return PaymentStatus.FAILED;
-    }
-  } catch (err) {
-    // If chapa verification fails (e.g. network error), we return the current DB status
-    console.error("Error verifying payment with Chapa:", err);
+  if (payment.status === PaymentStatus.PAID) {
+    return PaymentStatus.PAID;
   }
 
-  return payment.status;
+  try {
+    await handleSuccessfulPayment(txRef);
+    return PaymentStatus.PAID;
+  } catch (err) {
+    console.error("Error verifying payment with Chapa:", err);
+    const current = await prisma.payment.findUnique({ where: { txRef } });
+    return current?.status ?? payment.status;
+  }
 };
