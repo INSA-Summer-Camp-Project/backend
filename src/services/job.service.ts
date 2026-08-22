@@ -157,7 +157,7 @@ export const createDirectJob = async (
 
   // Notify target worker
   await createNotification(
-    targetWorker.userId,
+    { kind: "worker", workerId: targetWorker.id },
     "Direct Job Offer Received",
     `You have received a direct hire request for "${job.title}".`,
     "DIRECT_HIRE",
@@ -372,7 +372,7 @@ export const respondToDirectJob = async (
     });
 
     await createNotification(
-      updated.customer.userId,
+      { kind: "customer", customerProfileId: updated.customer.id },
       "Direct Hire Accepted 🎉",
       `The worker accepted your direct hire request for "${job.title}".`,
       "DIRECT_HIRE_ACCEPTED",
@@ -398,7 +398,7 @@ export const respondToDirectJob = async (
   });
 
   await createNotification(
-    declined.customer.userId,
+    { kind: "customer", customerProfileId: declined.customer.id },
     "Direct Hire Declined",
     `The worker declined your direct hire request for "${job.title}".`,
     "DIRECT_HIRE_DECLINED",
@@ -480,7 +480,7 @@ export const updateJobStatus = async (
   if (data.status === "COMPLETED") {
     if (isCustomer && updatedJob.assignedWorker) {
       await createNotification(
-        updatedJob.assignedWorker.userId,
+        { kind: "worker", workerId: updatedJob.assignedWorker!.id },
         "Job Marked Completed 🎉",
         `The customer has marked "${updatedJob.title}" as completed. Please leave a review!`,
         "JOB_COMPLETED",
@@ -488,7 +488,7 @@ export const updateJobStatus = async (
       ).catch(() => {});
     } else if (isAssignedWorker) {
       await createNotification(
-        updatedJob.customer.userId,
+        { kind: "customer", customerProfileId: updatedJob.customer.id },
         "Job Marked Completed 🎉",
         `The worker has marked "${updatedJob.title}" as completed. Please leave a review!`,
         "JOB_COMPLETED",

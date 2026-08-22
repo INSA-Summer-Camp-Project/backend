@@ -115,9 +115,8 @@ model User {
 
   customerProfile CustomerProfile?
   worker          Worker?
-  notifications   Notification[]
-  reportsMade     Report[]        @relation("Reporter")
-  reportsReceived Report[]        @relation("Reported")
+  reportsMade     Report[]         @relation("Reporter")
+  reportsReceived Report[]         @relation("Reported")
   refreshTokens   RefreshToken[]
 
   @@index([telegramId])
@@ -131,32 +130,34 @@ model CustomerProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobs    Job[]
-  reviews Review[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs          Job[]
+  reviews       Review[]
+  notifications Notification[]
 }
 
 model Worker {
-  id              String        @id @default(uuid())
-  userId          String        @unique @map("user_id")
-  bio             String?       @db.Text
-  experienceYears Int           @default(0) @map("experience_years")
-  profilePhoto    String?       @map("profile_photo")
-  paymentRate     Decimal?      @map("payment_rate") @db.Decimal(10, 2)
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  bio             String?  @db.Text
+  experienceYears Int      @default(0) @map("experience_years")
+  profilePhoto    String?  @map("profile_photo")
+  paymentRate     Decimal? @map("payment_rate") @db.Decimal(10, 2)
   availability    String?
-  ratingAvg       Decimal       @default(0.00) @map("rating_avg") @db.Decimal(3, 2)
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  ratingAvg       Decimal  @default(0.00) @map("rating_avg") @db.Decimal(3, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   portfolios     Portfolio[]
   certificates   Certificate[]
   services       Service[]
-  targetedJobs   Job[]          @relation("TargetedJobs")
-  assignedJobs   Job[]          @relation("AssignedJobs")
+  targetedJobs   Job[]           @relation("TargetedJobs")
+  assignedJobs   Job[]           @relation("AssignedJobs")
   applications   Application[]
   reviews        Review[]
   paymentAccount PaymentAccount?
+  notifications  Notification[]
 
   @@map("workers")
 }
@@ -205,7 +206,7 @@ model Certificate {
   title        String
   fileUrl      String    @map("file_url")
   filePublicId String?   @map("file_public_id")
-  issuedDate  DateTime? @map("issued_date") @db.Date
+  issuedDate   DateTime? @map("issued_date") @db.Date
 
   worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
@@ -251,8 +252,8 @@ model Application {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  job      Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  worker   Worker    @relation(fields: [workerId], references: [id], onDelete: Cascade)
   payments Payment[]
 
   @@unique([jobId, workerId])
@@ -311,21 +312,35 @@ model PaymentAccount {
   worker Worker @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
 }
 
+enum NotificationType {
+  DIRECT_HIRE
+  DIRECT_HIRE_ACCEPTED
+  DIRECT_HIRE_DECLINED
+  NEW_PROPOSAL
+  PROPOSAL_ACCEPTED
+  PROPOSAL_REJECTED
+  JOB_COMPLETED
+  NEW_REVIEW
+  PAYMENT_SUCCESS
+}
+
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  type      String
-  link      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String           @id @default(uuid())
+  customerProfileId String?
+  workerId          String?
+  title             String
+  message           String
+  isRead            Boolean          @default(false)
+  type              NotificationType
+  link              String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerProfile CustomerProfile? @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  worker          Worker?          @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([userId, isRead])
+  @@index([customerProfileId, isRead])
+  @@index([workerId, isRead])
 }
 
 model Report {
@@ -339,9 +354,9 @@ model Report {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  reporter    User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  reported    User         @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
-  job         Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  reporter User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  job      Job? @relation(fields: [jobId], references: [id], onDelete: SetNull)
 
   @@index([reporterId])
   @@index([reportedId])

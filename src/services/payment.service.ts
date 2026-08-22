@@ -47,8 +47,8 @@ export const createCheckout = async (userId: string, applicationId: string) => {
     throw new BadRequestError("Job is no longer available for payment");
   }
 
-  if (application.status !== ApplicationStatus.PENDING) {
-    throw new BadRequestError("Application is not in a pending state");
+  if (application.status !== ApplicationStatus.ACCEPTED) {
+    throw new BadRequestError("Application is not in an accepted state");
   }
 
   const shortId = applicationId.replace(/-/g, "").slice(0, 8);

@@ -146,7 +146,7 @@ export const createReview = async (
   // Notify the reviewed party
   if (reviewerRole === "CUSTOMER_TO_WORKER") {
     await createNotification(
-      job.assignedWorker.userId,
+      { kind: "worker", workerId: job.assignedWorker!.id },
       "New Review Received ⭐",
       `You received a ${data.rating}-star review for "${job.title}".`,
       "NEW_REVIEW",
@@ -154,7 +154,7 @@ export const createReview = async (
     ).catch(() => {});
   } else {
     await createNotification(
-      job.customer.userId,
+      { kind: "customer", customerProfileId: job.customer.id },
       "New Review Received ⭐",
       `You received a ${data.rating}-star review for "${job.title}".`,
       "NEW_REVIEW",

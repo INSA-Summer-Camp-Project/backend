@@ -10,3 +10,5 @@ docs
 *.md
 .vscode
 .idea
+.husky
+.agents

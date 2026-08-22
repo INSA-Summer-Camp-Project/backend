@@ -14,7 +14,7 @@
     "format:check": "prettier --check .",
     "full-check": "pnpm format:check && tsc --noEmit && pnpm lint && pnpm test",
     "check": "pnpm format:check && tsc --noEmit && pnpm lint",
-    "pre-check": "echo everything is working && exit 0",
+    "pre-check": "echo everything is not working && exit 0",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -32,7 +32,7 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "^11.17.0",
+      "version": "^11.21.0",
       "onFail": "download"
     }
   },

@@ -9,6 +9,7 @@ const userSelect = {
   name: true,
   telegramId: true,
   systemRole: true,
+  isOnboarded: true,
   lastActiveRole: true,
   createdAt: true,
   updatedAt: true,
@@ -33,6 +34,7 @@ export const getOnboardingStatus = async (userId: string) => {
     where: { id: userId },
     select: {
       id: true,
+      isOnboarded: true,
       lastActiveRole: true,
       customerProfile: { select: { id: true, bio: true } },
       worker: { select: { id: true, bio: true, experienceYears: true } },
@@ -44,7 +46,7 @@ export const getOnboardingStatus = async (userId: string) => {
   }
 
   return {
-    hasCompletedOnboarding: user.lastActiveRole !== null,
+    hasCompletedOnboarding: user.isOnboarded,
     activeRole: user.lastActiveRole,
     hasCustomerProfile: user.customerProfile !== null,
     hasWorkerProfile: user.worker !== null,
@@ -59,6 +61,7 @@ export const completeOnboarding = async (
     where: { id: userId },
     select: {
       id: true,
+      isOnboarded: true,
       lastActiveRole: true,
       customerProfile: { select: { id: true } },
       worker: { select: { id: true } },
@@ -69,7 +72,7 @@ export const completeOnboarding = async (
     throw new NotFoundError("User not found");
   }
 
-  if (user.lastActiveRole !== null) {
+  if (user.isOnboarded) {
     return prisma.user.findUnique({
       where: { id: userId },
       select: userSelect,
@@ -77,43 +80,46 @@ export const completeOnboarding = async (
   }
 
   return prisma.$transaction(async (tx) => {
-    if (dto.name) {
-      await tx.user.update({
-        where: { id: userId },
-        data: { name: dto.name },
-      });
+    const userUpdateData: Record<string, any> = {};
+
+    if (dto.firstName || dto.lastName) {
+      const nameParts = [];
+      if (dto.firstName) nameParts.push(dto.firstName);
+      if (dto.lastName) nameParts.push(dto.lastName);
+      if (nameParts.length > 0) userUpdateData.name = nameParts.join(" ");
+    }
+    if (dto.birthdate) {
+      userUpdateData.birthdate = new Date(dto.birthdate);
+    }
+    if (dto.gender) {
+      userUpdateData.gender = dto.gender;
     }
 
-    if (dto.activeRole === ActiveRole.WORKER && user.worker) {
-      const workerUpdate: Record<string, unknown> = {};
-      if (dto.bio !== undefined) workerUpdate.bio = dto.bio;
-      if (dto.experience !== undefined)
-        workerUpdate.experienceYears = Number(dto.experience) || 0;
-
-      if (Object.keys(workerUpdate).length > 0) {
-        await tx.worker.update({
-          where: { id: user.worker.id },
-          data: workerUpdate,
-        });
-      }
-
-      if (dto.categoryIds && dto.categoryIds.length > 0) {
-        const workerId = user.worker.id;
-        await tx.service.deleteMany({ where: { providerId: workerId } });
-        await tx.service.createMany({
-          data: dto.categoryIds.map((categoryId) => ({
-            providerId: workerId,
-            categoryId,
-            name: "Service",
-          })),
-        });
-      }
-    }
+    userUpdateData.isOnboarded = true;
+    userUpdateData.lastActiveRole = dto.activeRole;
 
     await tx.user.update({
       where: { id: userId },
-      data: { lastActiveRole: dto.activeRole },
+      data: userUpdateData,
     });
+
+    if (dto.activeRole === ActiveRole.WORKER) {
+      if (!user.worker) {
+        await tx.worker.create({
+          data: {
+            userId: userId,
+            experienceYears: 0,
+            ratingAvg: 0.0,
+          },
+        });
+      }
+    } else if (dto.activeRole === ActiveRole.CUSTOMER) {
+      if (!user.customerProfile) {
+        await tx.customerProfile.create({
+          data: { userId: userId },
+        });
+      }
+    }
 
     return tx.user.findUnique({
       where: { id: userId },

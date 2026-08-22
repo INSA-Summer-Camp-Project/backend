@@ -48,12 +48,21 @@ const userSelect = {
 
 type JwtExpiresIn = NonNullable<jwt.SignOptions["expiresIn"]>;
 
-export const createAccessToken = (userId: string, role: string): string => {
+export const createAccessToken = (
+  userId: string,
+  role: string,
+  isOnboarded: boolean = false,
+  activeRole?: string | null,
+): string => {
   const accessOptions: jwt.SignOptions = {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as JwtExpiresIn,
   };
 
-  return jwt.sign({ id: userId, role }, env.JWT_SECRET, accessOptions);
+  return jwt.sign(
+    { id: userId, role, isOnboarded, activeRole },
+    env.JWT_SECRET,
+    accessOptions,
+  );
 };
 
 export const createRefreshToken = async (
@@ -78,8 +87,10 @@ export const createRefreshToken = async (
 export const generateTokenPair = async (
   userId: string,
   role: string,
+  isOnboarded: boolean = false,
+  activeRole?: string | null,
 ): Promise<AuthTokensDto> => {
-  const accessToken = createAccessToken(userId, role);
+  const accessToken = createAccessToken(userId, role, isOnboarded, activeRole);
   const refreshToken = await createRefreshToken(prisma, userId);
   return { accessToken, refreshToken };
 };
@@ -91,7 +102,16 @@ export const verifyAndRotateRefreshToken = async (
 
   const tokenRecord = await prisma.refreshToken.findUnique({
     where: { tokenHash },
-    include: { user: { select: { id: true, systemRole: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          systemRole: true,
+          isOnboarded: true,
+          lastActiveRole: true,
+        },
+      },
+    },
   });
 
   if (!tokenRecord) {
@@ -117,6 +137,8 @@ export const verifyAndRotateRefreshToken = async (
     const accessToken = createAccessToken(
       tokenRecord.userId,
       tokenRecord.user.systemRole,
+      tokenRecord.user.isOnboarded,
+      tokenRecord.user.lastActiveRole,
     );
     const refreshToken = await createRefreshToken(tx, tokenRecord.userId);
     return { accessToken, refreshToken };
@@ -164,6 +186,7 @@ export const updateActiveRole = async (
     select: {
       id: true,
       worker: { select: { id: true } },
+      customerProfile: { select: { id: true } },
     },
   });
 
@@ -172,9 +195,15 @@ export const updateActiveRole = async (
   }
 
   if (activeRole === "WORKER" && !user.worker) {
-    throw new BadRequestError(
-      "Cannot switch to WORKER role without a worker profile.",
-    );
+    await prisma.worker.create({
+      data: { userId },
+    });
+  }
+
+  if (activeRole === "CUSTOMER" && !user.customerProfile) {
+    await prisma.customerProfile.create({
+      data: { userId },
+    });
   }
 
   const updatedUser = await prisma.user.update({
@@ -208,6 +237,12 @@ export const onboardUser = async (
       gender: data.gender,
       lastActiveRole: data.activeRole,
       isOnboarded: true,
+      customerProfile: {
+        create: {},
+      },
+      worker: {
+        create: {},
+      },
     },
     select: userSelect,
   });
@@ -227,33 +262,39 @@ export const loginWithTelegram = async (telegram: {
   });
 
   if (!user) {
-    user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          name: telegram.name ?? telegram.preferred_username ?? "Telegram User",
-          avatarUrl: telegram.avatarUrl || null,
-          telegramId: telegram.sub,
-          systemRole: "USER",
-        },
-      });
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            name:
+              telegram.name ?? telegram.preferred_username ?? "Telegram User",
+            avatarUrl: telegram.avatarUrl || null,
+            telegramId: telegram.sub,
+            systemRole: "USER",
+          },
+        });
 
-      await tx.customerProfile.create({
-        data: { userId: newUser.id },
+        return tx.user.findUnique({
+          where: { id: newUser.id },
+          select: userSelect,
+        });
       });
-
-      await tx.worker.create({
-        data: {
-          userId: newUser.id,
-          experienceYears: 0,
-          ratingAvg: 0.0,
-        },
-      });
-
-      return tx.user.findUnique({
-        where: { id: newUser.id },
-        select: userSelect,
-      });
-    });
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error as { code?: string }).code === "P2002"
+      ) {
+        // Another concurrent request just created the user
+        user = await prisma.user.findUnique({
+          where: { telegramId: telegram.sub },
+          select: userSelect,
+        });
+      } else {
+        throw error;
+      }
+    }
   } else {
     // If the user exists, we should still update their name and avatar
     // in case they changed it on Telegram.
@@ -261,12 +302,15 @@ export const loginWithTelegram = async (telegram: {
       telegram.name ?? telegram.preferred_username ?? "Telegram User";
 
     // Only update if something changed to avoid unnecessary DB writes
-    if (user.name !== telegramName || user.avatarUrl !== telegram.avatarUrl) {
+    const shouldUpdateName = !user.isOnboarded && user.name !== telegramName;
+    const shouldUpdateAvatar = user.avatarUrl !== telegram.avatarUrl;
+
+    if (shouldUpdateName || shouldUpdateAvatar) {
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
-          name: telegramName,
-          avatarUrl: telegram.avatarUrl || null,
+          ...(shouldUpdateName && { name: telegramName }),
+          ...(shouldUpdateAvatar && { avatarUrl: telegram.avatarUrl || null }),
         },
         select: userSelect,
       });
@@ -277,7 +321,12 @@ export const loginWithTelegram = async (telegram: {
     throw new BadRequestError("Telegram account creation failed");
   }
 
-  const tokens = await generateTokenPair(user.id, user.systemRole);
+  const tokens = await generateTokenPair(
+    user.id,
+    user.systemRole,
+    user.isOnboarded,
+    user.lastActiveRole,
+  );
 
   return {
     user: user as unknown as UserPublicDto,
