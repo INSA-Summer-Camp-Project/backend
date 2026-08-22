@@ -81,7 +81,7 @@ export const completeOnboarding = async (
 
   return prisma.$transaction(async (tx) => {
     const userUpdateData: Record<string, any> = {};
-    
+
     if (dto.firstName || dto.lastName) {
       const nameParts = [];
       if (dto.firstName) nameParts.push(dto.firstName);

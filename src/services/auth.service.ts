@@ -48,12 +48,21 @@ const userSelect = {
 
 type JwtExpiresIn = NonNullable<jwt.SignOptions["expiresIn"]>;
 
-export const createAccessToken = (userId: string, role: string, isOnboarded: boolean = false, activeRole?: string | null): string => {
+export const createAccessToken = (
+  userId: string,
+  role: string,
+  isOnboarded: boolean = false,
+  activeRole?: string | null,
+): string => {
   const accessOptions: jwt.SignOptions = {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as JwtExpiresIn,
   };
 
-  return jwt.sign({ id: userId, role, isOnboarded, activeRole }, env.JWT_SECRET, accessOptions);
+  return jwt.sign(
+    { id: userId, role, isOnboarded, activeRole },
+    env.JWT_SECRET,
+    accessOptions,
+  );
 };
 
 export const createRefreshToken = async (
@@ -93,7 +102,16 @@ export const verifyAndRotateRefreshToken = async (
 
   const tokenRecord = await prisma.refreshToken.findUnique({
     where: { tokenHash },
-    include: { user: { select: { id: true, systemRole: true, isOnboarded: true, lastActiveRole: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          systemRole: true,
+          isOnboarded: true,
+          lastActiveRole: true,
+        },
+      },
+    },
   });
 
   if (!tokenRecord) {
@@ -120,7 +138,7 @@ export const verifyAndRotateRefreshToken = async (
       tokenRecord.userId,
       tokenRecord.user.systemRole,
       tokenRecord.user.isOnboarded,
-      tokenRecord.user.lastActiveRole
+      tokenRecord.user.lastActiveRole,
     );
     const refreshToken = await createRefreshToken(tx, tokenRecord.userId);
     return { accessToken, refreshToken };
@@ -168,6 +186,7 @@ export const updateActiveRole = async (
     select: {
       id: true,
       worker: { select: { id: true } },
+      customerProfile: { select: { id: true } },
     },
   });
 
@@ -176,9 +195,15 @@ export const updateActiveRole = async (
   }
 
   if (activeRole === "WORKER" && !user.worker) {
-    throw new BadRequestError(
-      "Cannot switch to WORKER role without a worker profile.",
-    );
+    await prisma.worker.create({
+      data: { userId },
+    });
+  }
+
+  if (activeRole === "CUSTOMER" && !user.customerProfile) {
+    await prisma.customerProfile.create({
+      data: { userId },
+    });
   }
 
   const updatedUser = await prisma.user.update({
@@ -212,6 +237,12 @@ export const onboardUser = async (
       gender: data.gender,
       lastActiveRole: data.activeRole,
       isOnboarded: true,
+      customerProfile: {
+        create: {},
+      },
+      worker: {
+        create: {},
+      },
     },
     select: userSelect,
   });
@@ -235,7 +266,8 @@ export const loginWithTelegram = async (telegram: {
       user = await prisma.$transaction(async (tx) => {
         const newUser = await tx.user.create({
           data: {
-            name: telegram.name ?? telegram.preferred_username ?? "Telegram User",
+            name:
+              telegram.name ?? telegram.preferred_username ?? "Telegram User",
             avatarUrl: telegram.avatarUrl || null,
             telegramId: telegram.sub,
             systemRole: "USER",
@@ -270,12 +302,15 @@ export const loginWithTelegram = async (telegram: {
       telegram.name ?? telegram.preferred_username ?? "Telegram User";
 
     // Only update if something changed to avoid unnecessary DB writes
-    if (user.name !== telegramName || user.avatarUrl !== telegram.avatarUrl) {
+    const shouldUpdateName = !user.isOnboarded && user.name !== telegramName;
+    const shouldUpdateAvatar = user.avatarUrl !== telegram.avatarUrl;
+
+    if (shouldUpdateName || shouldUpdateAvatar) {
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
-          name: telegramName,
-          avatarUrl: telegram.avatarUrl || null,
+          ...(shouldUpdateName && { name: telegramName }),
+          ...(shouldUpdateAvatar && { avatarUrl: telegram.avatarUrl || null }),
         },
         select: userSelect,
       });
@@ -286,7 +321,12 @@ export const loginWithTelegram = async (telegram: {
     throw new BadRequestError("Telegram account creation failed");
   }
 
-  const tokens = await generateTokenPair(user.id, user.systemRole, user.isOnboarded, user.lastActiveRole);
+  const tokens = await generateTokenPair(
+    user.id,
+    user.systemRole,
+    user.isOnboarded,
+    user.lastActiveRole,
+  );
 
   return {
     user: user as unknown as UserPublicDto,

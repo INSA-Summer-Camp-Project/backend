@@ -51,7 +51,7 @@ export const verifyTelegramCode = async (
     const url = new URL(currentUrlString);
     const code = url.searchParams.get("code");
     if (!code) throw new Error("No authorization code in URL");
-    
+
     // Manual token exchange to bypass strict openid-client validation rules
     // that clash with Telegram's non-standard responses
     const tokenParams = new URLSearchParams({
@@ -65,21 +65,25 @@ export const verifyTelegramCode = async (
 
     const tokenEndpoint = config.serverMetadata().token_endpoint;
     if (!tokenEndpoint) {
-      throw new Error("Telegram OIDC discovery did not return a token_endpoint");
+      throw new Error(
+        "Telegram OIDC discovery did not return a token_endpoint",
+      );
     }
 
     const tokenResponse = await fetch(tokenEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json"
+        Accept: "application/json",
       },
       body: tokenParams.toString(),
     });
 
     if (!tokenResponse.ok) {
       const errText = await tokenResponse.text();
-      throw new Error(`Token exchange HTTP error ${tokenResponse.status}: ${errText}`);
+      throw new Error(
+        `Token exchange HTTP error ${tokenResponse.status}: ${errText}`,
+      );
     }
 
     tokensData = await tokenResponse.json();
@@ -92,17 +96,24 @@ export const verifyTelegramCode = async (
   }
 
   if (!tokensData.id_token) {
-    throw new Error("Telegram did not return an id_token");
+    throw new Error(
+      `Telegram did not return an id_token. Payload: ${JSON.stringify(tokensData)}`,
+    );
   }
 
   // Parse the JWT without strict signature validation for this step since we just received it securely from the token endpoint
   let claims;
   try {
-    const base64Url = tokensData.id_token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
+    const base64Url = tokensData.id_token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join(""),
+    );
     claims = JSON.parse(jsonPayload);
   } catch (error) {
     throw new Error("Failed to parse Telegram ID token", { cause: error });

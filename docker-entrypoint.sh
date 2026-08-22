@@ -2,7 +2,7 @@
 set -e
 
 echo "Running Prisma migrations..."
-npx prisma migrate deploy --schema=prisma/schema.prisma
+node_modules/.bin/prisma migrate deploy --schema=prisma/schema.prisma
 
 echo "Starting application..."
-exec node --import tsx src/server.ts
+exec node --import tsx/esm src/server.ts

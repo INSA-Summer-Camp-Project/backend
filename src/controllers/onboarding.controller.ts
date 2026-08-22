@@ -18,11 +18,13 @@ export const getOnboardingStatus = asyncHandler(
 export const completeOnboarding = asyncHandler(
   async (req: Request, res: Response) => {
     const dto = CompleteOnboardingDtoSchema.parse(req.body);
-    const user = await onboardingService.completeOnboarding(
-      req.user!.id,
-      dto,
+    const user = await onboardingService.completeOnboarding(req.user!.id, dto);
+    const tokens = await authService.generateTokenPair(
+      user!.id,
+      user!.systemRole,
+      user!.isOnboarded,
+      user!.lastActiveRole,
     );
-    const tokens = await authService.generateTokenPair(user!.id, user!.systemRole, user!.isOnboarded, user!.lastActiveRole);
 
     const isProduction = env.NODE_ENV === "production";
 
