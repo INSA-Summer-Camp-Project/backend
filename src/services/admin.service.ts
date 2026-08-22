@@ -1,6 +1,10 @@
 import type { SystemRole } from "@prisma/client";
 import type { AdminUserQueryDto, CreateCategoryDto } from "@/dtos/admin.dto";
-import { NotFoundError, ConflictError } from "@/middlewares/error.middleware";
+import {
+  NotFoundError,
+  ConflictError,
+  BadRequestError,
+} from "@/middlewares/error.middleware";
 import { prisma } from "@/lib/prisma";
 
 export const getDashboardStats = async () => {
@@ -54,11 +58,29 @@ export const getAllUsers = async (query: AdminUserQueryDto) => {
   };
 };
 
-export const updateUserRole = async (userId: string, role: SystemRole) => {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+export const updateUserRole = async (
+  adminUserId: string,
+  targetUserId: string,
+  role: SystemRole,
+) => {
+  const user = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!user) throw new NotFoundError("User not found");
+
+  if (adminUserId === targetUserId && role !== "ADMIN") {
+    throw new BadRequestError("Admins cannot demote themselves");
+  }
+
+  if (user.systemRole === "ADMIN" && role !== "ADMIN") {
+    const adminCount = await prisma.user.count({
+      where: { systemRole: "ADMIN" },
+    });
+    if (adminCount <= 1) {
+      throw new BadRequestError("Cannot demote the only remaining admin");
+    }
+  }
+
   return prisma.user.update({
-    where: { id: userId },
+    where: { id: targetUserId },
     data: { systemRole: role },
     select: { id: true, name: true, systemRole: true },
   });
@@ -75,7 +97,25 @@ export const createCategory = async (data: CreateCategoryDto) => {
 };
 
 export const deleteCategory = async (id: string) => {
-  const category = await prisma.category.findUnique({ where: { id } });
+  const category = await prisma.category.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          jobs: true,
+          services: true,
+        },
+      },
+    },
+  });
+
   if (!category) throw new NotFoundError("Category not found");
+
+  if (category._count.jobs > 0 || category._count.services > 0) {
+    throw new ConflictError(
+      "Cannot delete category with associated jobs or services",
+    );
+  }
+
   return prisma.category.delete({ where: { id } });
 };

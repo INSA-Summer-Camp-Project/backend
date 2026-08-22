@@ -39,7 +39,7 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
       telegramId: "tg_worker_a",
       role: "WORKER",
     });
-    workerAToken = (await generateTokens(workerAUser.id, "WORKER")).accessToken;
+    workerAToken = (await generateTokens(workerAUser.id, "USER")).accessToken;
 
     // Worker B
     workerBUser = await registerUser({
@@ -47,7 +47,7 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
       telegramId: "tg_worker_b",
       role: "WORKER",
     });
-    workerBToken = (await generateTokens(workerBUser.id, "WORKER")).accessToken;
+    workerBToken = (await generateTokens(workerBUser.id, "USER")).accessToken;
   });
 
   describe("Worker Profile Endpoints", () => {
@@ -232,6 +232,99 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
         .set("Authorization", `Bearer ${workerAToken}`);
 
       expect(delRes.status).toBe(200);
+    });
+  });
+
+  describe("Worker Search Sorting & Reputation Earnings", () => {
+    it("GET /api/v1/workers?sortBy=jobs should sort workers by completed jobs count", async () => {
+      // Create a customer and jobs assigned to Worker A
+      const customer = await registerUser({
+        name: "Customer John",
+        telegramId: "tg_cust_sort",
+      });
+      const custProfile = await prisma.customerProfile.findUniqueOrThrow({
+        where: { userId: customer.id },
+      });
+
+      const workerA = await prisma.worker.findUniqueOrThrow({
+        where: { userId: workerAUser.id },
+      });
+
+      // Worker A gets 2 jobs
+      await prisma.job.create({
+        data: {
+          customerId: custProfile.id,
+          categoryId,
+          title: "Job 1 for A",
+          description: "Detailed description for job 1",
+          budget: 500,
+          status: "COMPLETED",
+          assignedWorkerId: workerA.id,
+        },
+      });
+      await prisma.job.create({
+        data: {
+          customerId: custProfile.id,
+          categoryId,
+          title: "Job 2 for A",
+          description: "Detailed description for job 2",
+          budget: 600,
+          status: "COMPLETED",
+          assignedWorkerId: workerA.id,
+        },
+      });
+
+      const res = await request(app)
+        .get("/api/v1/workers?sortBy=jobs")
+        .set("Authorization", `Bearer ${workerAToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.length).toBeGreaterThanOrEqual(2);
+      expect(res.body.data[0].id).toBe(workerA.id);
+    });
+
+    it("GET /api/v1/workers/:id/reputation should compute totalEarnings from actual PAID payments", async () => {
+      const customer = await registerUser({
+        name: "Customer Bob",
+        telegramId: "tg_cust_earn",
+      });
+      const custProfile = await prisma.customerProfile.findUniqueOrThrow({
+        where: { userId: customer.id },
+      });
+      const workerA = await prisma.worker.findUniqueOrThrow({
+        where: { userId: workerAUser.id },
+      });
+
+      const job = await prisma.job.create({
+        data: {
+          customerId: custProfile.id,
+          categoryId,
+          title: "Job Paid",
+          description: "Detailed description for paid job",
+          budget: 1000,
+          status: "COMPLETED",
+          assignedWorkerId: workerA.id,
+        },
+      });
+
+      await prisma.payment.create({
+        data: {
+          jobId: job.id,
+          amount: 850,
+          currency: "ETB",
+          method: "CHAPA",
+          status: "PAID",
+          txRef: `sh_earn_${Date.now()}`,
+          platformCommission: 85,
+        },
+      });
+
+      const res = await request(app).get(`/api/v1/workers/${workerA.id}/reputation`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.metrics.totalEarnings).toBe(850);
     });
   });
 });

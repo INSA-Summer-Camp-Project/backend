@@ -253,6 +253,10 @@ export const getMyJobs = async (
     include: {
       category: { select: categorySelect },
       customer: { select: customerPublicSelect },
+      payments: {
+        where: { status: "PAID" },
+        select: { id: true, amount: true, status: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

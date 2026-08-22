@@ -159,6 +159,9 @@ export const getWorkers = async (query: WorkerQueryDto) => {
   let orderBy: Prisma.WorkerOrderByWithRelationInput[];
 
   switch (sortBy) {
+    case "jobs":
+      orderBy = [{ assignedJobs: { _count: "desc" } }, { ratingAvg: "desc" }];
+      break;
     case "newest":
       orderBy = [{ createdAt: "desc" }];
       break;

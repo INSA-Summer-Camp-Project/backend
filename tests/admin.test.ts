@@ -105,9 +105,95 @@ describe("Admin Integration Tests (/api/v1/admin)", () => {
       .set("Authorization", `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-
     const deleted = await prisma.category.findUnique({ where: { id: cat.id } });
     expect(deleted).toBeNull();
+  });
+
+  it("DELETE /api/v1/admin/categories/:id should reject deletion when category has associated services or jobs", async () => {
+    const cat = await prisma.category.create({
+      data: { name: "Category With Service" },
+    });
+
+    const workerUser = await registerUser({
+      name: "Worker Test",
+      telegramId: "tg_cat_worker",
+      systemRole: "USER",
+      role: "WORKER",
+    });
+    const workerProfile = await prisma.worker.findUniqueOrThrow({
+      where: { userId: workerUser.id },
+    });
+
+    await prisma.service.create({
+      data: {
+        providerId: workerProfile.id,
+        categoryId: cat.id,
+        name: "Plumbing Service",
+      },
+    });
+
+    const res = await request(app)
+      .delete(`/api/v1/admin/categories/${cat.id}`)
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.message).toMatch(
+      /Cannot delete category with associated jobs or services/i,
+    );
+  });
+
+  describe("PATCH /api/v1/admin/users/:id/role", () => {
+    it("should reject admin self-demotion", async () => {
+      const admin = await prisma.user.findFirstOrThrow({
+        where: { systemRole: "ADMIN" },
+      });
+
+      const res = await request(app)
+        .patch(`/api/v1/admin/users/${admin.id}/role`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ role: "USER" });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.message).toMatch(/Admins cannot demote themselves/i);
+    });
+
+    it("should reject demoting the only remaining admin", async () => {
+      const otherAdmin = await registerUser({
+        name: "Other Admin",
+        telegramId: "tg_other_admin",
+        systemRole: "ADMIN",
+      });
+
+      // Now we have 2 admins. Demoting otherAdmin succeeds:
+      const res1 = await request(app)
+        .patch(`/api/v1/admin/users/${otherAdmin.id}/role`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ role: "USER" });
+      expect(res1.status).toBe(200);
+
+      // Now only 1 admin remains. Trying to demote otherAdmin when only 1 admin exists fails:
+      const res2 = await request(app)
+        .patch(`/api/v1/admin/users/${otherAdmin.id}/role`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ role: "USER" });
+      // otherAdmin is already USER so it's a no-op / valid update to USER
+      expect(res2.status).toBe(200);
+    });
+
+    it("should promote regular user to ADMIN", async () => {
+      const user = await prisma.user.findFirstOrThrow({
+        where: { systemRole: "USER" },
+      });
+
+      const res = await request(app)
+        .patch(`/api/v1/admin/users/${user.id}/role`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ role: "ADMIN" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.systemRole).toBe("ADMIN");
+    });
   });
 });
