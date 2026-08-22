@@ -4,7 +4,6 @@ import app from "@/app";
 import { prisma } from "@/lib/prisma";
 import { generateTokenPair as generateTokens } from "@/services/auth.service";
 import { registerTestUser as registerUser } from "./auth.helper";
-import type { UserPublicDto } from "@/dtos/auth.dto";
 
 describe("Profile-scoped Notification Integration Tests (/api/v1/notifications)", () => {
   let customerToken: string;

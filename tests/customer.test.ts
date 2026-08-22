@@ -10,7 +10,6 @@ describe("Customer Profile Integration Tests (/api/v1/customers)", () => {
   let customerUserId: string;
   let customerProfileId: string;
   let workerToken: string;
-  let workerUserId: string;
 
   beforeEach(async () => {
     await prisma.review.deleteMany();
@@ -47,7 +46,6 @@ describe("Customer Profile Integration Tests (/api/v1/customers)", () => {
       systemRole: "USER",
       role: "WORKER",
     });
-    workerUserId = worker.id;
     workerToken = (await generateTokens(worker.id, "USER")).accessToken;
   });
 

@@ -53,7 +53,8 @@ export const handleWebhook = asyncHandler(
 
 export const verifyPayment = asyncHandler(
   async (req: Request, res: Response) => {
-    const { txRef } = req.params;
+    const txRefParam = req.params.txRef;
+    const txRef = Array.isArray(txRefParam) ? txRefParam[0] : txRefParam;
     if (!txRef) {
       res.status(400).json({
         success: false,

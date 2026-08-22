@@ -59,18 +59,9 @@ export const recalculateCustomerRatingAvg = async (
 // ---------------------------------------------------------------------------
 export const createReview = async (
   userId: string,
-  activeRole: ActiveRole | undefined,
+  _activeRole: ActiveRole | undefined,
   data: CreateReviewDto,
 ) => {
-  let role = activeRole;
-  if (!role) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { lastActiveRole: true },
-    });
-    role = user?.lastActiveRole ?? "CUSTOMER";
-  }
-
   const job = await prisma.job.findUnique({
     where: { id: data.jobId },
     include: {

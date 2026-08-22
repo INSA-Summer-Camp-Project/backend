@@ -730,7 +730,7 @@
       "name": "Notifications",
       "item": [
         {
-          "name": "Get Notifications",
+          "name": "Get Customer Notifications",
           "request": {
             "method": "GET",
             "header": [
@@ -740,14 +740,31 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/notifications",
+              "raw": "{{baseUrl}}/notifications/customer",
               "host": ["{{baseUrl}}"],
-              "path": ["notifications"]
+              "path": ["notifications", "customer"]
             }
           }
         },
         {
-          "name": "Mark As Read",
+          "name": "Get Customer Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/customer/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "customer", "unread-count"]
+            }
+          }
+        },
+        {
+          "name": "Mark Customer Notification As Read",
           "request": {
             "method": "PATCH",
             "header": [
@@ -757,14 +774,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/notifications/uuid/read",
+              "raw": "{{baseUrl}}/notifications/customer/uuid/read",
               "host": ["{{baseUrl}}"],
-              "path": ["notifications", "uuid", "read"]
+              "path": ["notifications", "customer", "uuid", "read"]
             }
           }
         },
         {
-          "name": "Mark All As Read",
+          "name": "Mark All Customer Notifications As Read",
           "request": {
             "method": "PATCH",
             "header": [
@@ -774,9 +791,77 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/notifications/read-all",
+              "raw": "{{baseUrl}}/notifications/customer/read-all",
               "host": ["{{baseUrl}}"],
-              "path": ["notifications", "read-all"]
+              "path": ["notifications", "customer", "read-all"]
+            }
+          }
+        },
+        {
+          "name": "Get Worker Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/worker",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "worker"]
+            }
+          }
+        },
+        {
+          "name": "Get Worker Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/worker/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "worker", "unread-count"]
+            }
+          }
+        },
+        {
+          "name": "Mark Worker Notification As Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/worker/uuid/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "worker", "uuid", "read"]
+            }
+          }
+        },
+        {
+          "name": "Mark All Worker Notifications As Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/worker/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "worker", "read-all"]
             }
           }
         }
