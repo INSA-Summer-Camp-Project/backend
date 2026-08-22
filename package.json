@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "db:seed": "tsx prisma/seed.ts",
     "full-check": "pnpm format:check && tsc --noEmit && pnpm lint && pnpm test",
     "check": "pnpm format:check && tsc --noEmit && pnpm lint",
     "pre-check": "echo everything is not working && exit 0",
@@ -71,5 +72,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.10"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
