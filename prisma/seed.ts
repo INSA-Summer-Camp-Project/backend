@@ -20,35 +20,46 @@ async function main() {
   const catPlumbing = await prisma.category.create({
     data: {
       name: "Plumbing & Piping",
-      description: "Leak repairs, pipe installations, drain cleaning, and bathroom fitting.",
+      description:
+        "Leak repairs, pipe installations, drain cleaning, and bathroom fitting.",
     },
   });
   const catElectrical = await prisma.category.create({
     data: {
       name: "Electrical Systems",
-      description: "Wiring, circuit breakers, lighting fixtures, and generator servicing.",
+      description:
+        "Wiring, circuit breakers, lighting fixtures, and generator servicing.",
     },
   });
   const catCleaning = await prisma.category.create({
     data: {
       name: "Deep Cleaning & Janitorial",
-      description: "Residential deep cleaning, office sanitization, and upholstery care.",
+      description:
+        "Residential deep cleaning, office sanitization, and upholstery care.",
     },
   });
   const catCarpentry = await prisma.category.create({
     data: {
       name: "Carpentry & Woodwork",
-      description: "Custom cabinetry, furniture repair, door hanging, and floor refinishing.",
+      description:
+        "Custom cabinetry, furniture repair, door hanging, and floor refinishing.",
     },
   });
   const catPainting = await prisma.category.create({
     data: {
       name: "Painting & Wall Finishes",
-      description: "Interior/exterior wall painting, decorative finishes, and plastering.",
+      description:
+        "Interior/exterior wall painting, decorative finishes, and plastering.",
     },
   });
 
-  const categories = [catPlumbing, catElectrical, catCleaning, catCarpentry, catPainting];
+  const categories = [
+    catPlumbing,
+    catElectrical,
+    catCleaning,
+    catCarpentry,
+    catPainting,
+  ];
 
   console.log("Creating realistic users with dual profiles...");
 
@@ -58,8 +69,10 @@ async function main() {
       email: "abebe.bikila@servicehub.et",
       phone: "+251911223344",
       telegramId: "tg_abebe_b",
-      customerBio: "Residential homeowner looking for high-quality, dependable maintenance.",
-      workerBio: "Master Plumber with 12 years of experience in residential and commercial piping systems.",
+      customerBio:
+        "Residential homeowner looking for high-quality, dependable maintenance.",
+      workerBio:
+        "Master Plumber with 12 years of experience in residential and commercial piping systems.",
       experienceYears: 12,
       rate: 350,
       rating: 4.9,
@@ -69,8 +82,10 @@ async function main() {
       email: "betty.tadesse@servicehub.et",
       phone: "+251911334455",
       telegramId: "tg_betty_t",
-      customerBio: "Office manager coordinating facility cleaning and electrical maintenance.",
-      workerBio: "Certified Electrician specializing in power distribution and energy-efficient lighting.",
+      customerBio:
+        "Office manager coordinating facility cleaning and electrical maintenance.",
+      workerBio:
+        "Certified Electrician specializing in power distribution and energy-efficient lighting.",
       experienceYears: 8,
       rate: 400,
       rating: 4.8,
@@ -80,8 +95,10 @@ async function main() {
       email: "dawit.haile@servicehub.et",
       phone: "+251911445566",
       telegramId: "tg_dawit_h",
-      customerBio: "Property developer managing residential rental units across Addis Ababa.",
-      workerBio: "Professional Carpenter crafting bespoke furniture and structural woodwork.",
+      customerBio:
+        "Property developer managing residential rental units across Addis Ababa.",
+      workerBio:
+        "Professional Carpenter crafting bespoke furniture and structural woodwork.",
       experienceYears: 10,
       rate: 300,
       rating: 4.7,
@@ -91,8 +108,10 @@ async function main() {
       email: "almaz.ayana@servicehub.et",
       phone: "+251911556677",
       telegramId: "tg_almaz_a",
-      customerBio: "Boutique store owner in Bole seeking prompt sanitization and decor services.",
-      workerBio: "Specialist in commercial and domestic deep cleaning with eco-friendly solutions.",
+      customerBio:
+        "Boutique store owner in Bole seeking prompt sanitization and decor services.",
+      workerBio:
+        "Specialist in commercial and domestic deep cleaning with eco-friendly solutions.",
       experienceYears: 6,
       rate: 220,
       rating: 4.9,
@@ -102,8 +121,10 @@ async function main() {
       email: "chala.regassa@servicehub.et",
       phone: "+251911667788",
       telegramId: "tg_chala_r",
-      customerBio: "Tech consultant hiring vetted local professionals for home improvements.",
-      workerBio: "Interior Painter with expertise in modern textures, waterproofing, and spray finishes.",
+      customerBio:
+        "Tech consultant hiring vetted local professionals for home improvements.",
+      workerBio:
+        "Interior Painter with expertise in modern textures, waterproofing, and spray finishes.",
       experienceYears: 9,
       rate: 280,
       rating: 4.6,
@@ -183,7 +204,9 @@ async function main() {
     });
   }
 
-  console.log("Creating Jobs, Contracts, Bidirectional Reviews, and Notifications...");
+  console.log(
+    "Creating Jobs, Contracts, Bidirectional Reviews, and Notifications...",
+  );
 
   for (let i = 0; i < createdUsers.length; i++) {
     const customer = createdUsers[i];

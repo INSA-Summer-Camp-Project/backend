@@ -74,10 +74,10 @@ export const createCheckout = async (userId: string, applicationId: string) => {
 
   const returnUrl =
     env.CHAPA_RETURN_URL ||
-    `${env.FRONTEND_URL}/customer/jobs/${application.jobId}?payment=success`;
+    `${env.FRONTEND_URL}/customer/checkout/${application.jobId}/success`;
   const callbackUrl =
     env.CHAPA_CALLBACK_URL ||
-    `${env.FRONTEND_URL.replace("localhost", "host.docker.internal")}/api/payments/webhook`;
+    `${env.BACKEND_PUBLIC_URL}/api/v1/payments/webhook`;
 
   const chapaRes = await chapaClient.initializeCheckout({
     amount: amountToPay,
@@ -96,4 +96,52 @@ export const createCheckout = async (userId: string, applicationId: string) => {
     checkoutUrl: chapaRes.data?.checkout_url,
     txRef,
   };
+};
+
+export const verifyPayment = async (txRef: string, userId: string) => {
+  const payment = await prisma.payment.findUnique({
+    where: { txRef },
+    include: {
+      application: {
+        include: { job: true },
+      },
+    },
+  });
+
+  if (!payment) {
+    throw new NotFoundError("Payment not found");
+  }
+
+  // Authorize: Only the customer who owns the job can verify
+  const customer = await prisma.customerProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!customer || payment.application.job.customerId !== customer.id) {
+    throw new ForbiddenError("Not authorized to view this payment");
+  }
+
+  // Check with Chapa
+  try {
+    const chapaRes = await chapaClient.verifyPayment(txRef);
+
+    if (chapaRes.data?.status === "success" && payment.status !== PaymentStatus.PAID) {
+      await prisma.payment.update({
+        where: { txRef },
+        data: { status: PaymentStatus.PAID },
+      });
+      return PaymentStatus.PAID;
+    } else if (chapaRes.data?.status === "failed" && payment.status !== PaymentStatus.FAILED) {
+      await prisma.payment.update({
+        where: { txRef },
+        data: { status: PaymentStatus.FAILED },
+      });
+      return PaymentStatus.FAILED;
+    }
+  } catch (err) {
+    // If chapa verification fails (e.g. network error), we return the current DB status
+    console.error("Error verifying payment with Chapa:", err);
+  }
+
+  return payment.status;
 };

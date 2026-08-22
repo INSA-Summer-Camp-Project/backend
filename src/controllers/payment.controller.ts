@@ -50,3 +50,18 @@ export const handleWebhook = asyncHandler(
     sendSuccess(res, result, 200);
   },
 );
+
+export const verifyPayment = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { txRef } = req.params;
+    if (!txRef) {
+      res.status(400).json({
+        success: false,
+        error: { code: "VALIDATION_ERROR", message: "txRef is required" },
+      });
+      return;
+    }
+    const status = await paymentService.verifyPayment(txRef, req.user!.id);
+    sendSuccess(res, { status }, 200);
+  },
+);

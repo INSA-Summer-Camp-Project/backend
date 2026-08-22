@@ -1,4 +1,3 @@
-
 import type { Prisma } from "@prisma/client";
 import type { CompleteOnboardingDto } from "@/dtos/onboarding.dto";
 import { NotFoundError } from "@/middlewares/error.middleware";
