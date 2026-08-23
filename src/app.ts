@@ -3,6 +3,7 @@ import cors from "cors";
 import type { ApiResponse } from "@/types";
 import router from "@/routes";
 import { errorHandler } from "@/middlewares/error.middleware";
+import { requestLogger } from "@/middlewares/logger.middleware";
 import { corsOptions } from "@/config/cors";
 
 export const app: Express = express();
@@ -12,6 +13,9 @@ app.disable("x-powered-by");
 
 // CORS Configuration
 app.use(cors(corsOptions));
+
+// HTTP Request Logging Middleware
+app.use(requestLogger);
 
 // Global Middleware
 app.use(express.json());
@@ -45,7 +49,10 @@ export const getAppName = () => "ServiceHub Backend API";
 export const addNumbers = (a: number, b: number): number => a + b;
 
 // 404 Handler
-app.use((_req: Request, res: Response<ApiResponse<never>>) => {
+app.use((req: Request, res: Response<ApiResponse<never>>) => {
+  console.warn(
+    `🔍 [HTTP 404] [NOT_FOUND] ${req.method} ${req.originalUrl || req.url} - Resource not found`,
+  );
   res.status(404).json({
     success: false,
     error: {

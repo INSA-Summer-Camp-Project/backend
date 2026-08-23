@@ -31,7 +31,7 @@ services:
         # Only used during `prisma generate` — not the real runtime URL
         DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
     container_name: backend_app
-    restart: always
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 5000
@@ -49,10 +49,10 @@ services:
       CHAPA_PUBLIC_KEY: ${CHAPA_PUBLIC_KEY:-CHAPUBK-test-placeholder}
       CHAPA_SECRET_KEY: ${CHAPA_SECRET_KEY:-CHASECK_TEST-placeholder}
       CHAPA_ENCRYPTION_KEY: ${CHAPA_ENCRYPTION_KEY:-placeholder-encryption-key-32chars}
-      CHAPA_RETURN_URL: ${CHAPA_RETURN_URL:-http://localhost:3000/payment/verify}
-      CHAPA_CALLBACK_URL: ${CHAPA_CALLBACK_URL:-http://localhost:5000/api/v1/payment/webhook}
+      CHAPA_RETURN_URL: ${CHAPA_RETURN_URL:-http://localhost:3000/customer/checkout}
+      CHAPA_CALLBACK_URL: ${CHAPA_CALLBACK_URL:-http://localhost:5000/api/v1/payments/webhook}
     ports:
-      - "${APP_PORT:-5001}:5000"
+      - "${APP_PORT:-5000}:5000"
     depends_on:
       postgres:
         condition: service_healthy

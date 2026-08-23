@@ -13,6 +13,7 @@ import {
 } from "@/middlewares/error.middleware";
 import { chapaClient } from "@/lib/chapa/chapa.client";
 import { prisma } from "@/lib/prisma";
+import { handleSuccessfulPayment } from "@/services/payment-webhook.service";
 
 const PLATFORM_COMMISSION_RATE = 0.1;
 
@@ -74,10 +75,10 @@ export const createCheckout = async (userId: string, applicationId: string) => {
 
   const returnUrl =
     env.CHAPA_RETURN_URL ||
-    `${env.FRONTEND_URL}/customer/jobs/${application.jobId}?payment=success`;
+    `${env.FRONTEND_URL}/customer/checkout/${application.jobId}/success`;
   const callbackUrl =
     env.CHAPA_CALLBACK_URL ||
-    `${env.FRONTEND_URL.replace("localhost", "host.docker.internal")}/api/payments/webhook`;
+    `${env.BACKEND_PUBLIC_URL}/api/v1/payments/webhook`;
 
   const chapaRes = await chapaClient.initializeCheckout({
     amount: amountToPay,
@@ -96,4 +97,45 @@ export const createCheckout = async (userId: string, applicationId: string) => {
     checkoutUrl: chapaRes.data?.checkout_url,
     txRef,
   };
+};
+
+export const verifyPayment = async (txRef: string, userId: string) => {
+  const payment = await prisma.payment.findUnique({
+    where: { txRef },
+    include: {
+      job: true,
+      application: {
+        include: { job: true },
+      },
+    },
+  });
+
+  if (!payment) {
+    throw new NotFoundError("Payment not found");
+  }
+
+  // Authorize: Only the customer who owns the job can verify
+  const customer = await prisma.customerProfile.findUnique({
+    where: { userId },
+  });
+
+  const jobCustomerId =
+    payment.job?.customerId || payment.application?.job.customerId;
+
+  if (!customer || jobCustomerId !== customer.id) {
+    throw new ForbiddenError("Not authorized to view this payment");
+  }
+
+  if (payment.status === PaymentStatus.PAID) {
+    return PaymentStatus.PAID;
+  }
+
+  try {
+    await handleSuccessfulPayment(txRef);
+    return PaymentStatus.PAID;
+  } catch (err) {
+    console.error("Error verifying payment with Chapa:", err);
+    const current = await prisma.payment.findUnique({ where: { txRef } });
+    return current?.status ?? payment.status;
+  }
 };

@@ -67,7 +67,7 @@ export const UpdateWorkerProfileSchema = z.object({
 
 export const CreateWorkerServiceSchema = z.object({
   categoryId: z.string().uuid({ message: "Invalid category ID format" }),
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters").optional(),
   description: z.string().optional(),
   price: z.number().positive("Price must be positive").optional(),
 });
@@ -82,12 +82,34 @@ export const UpdateWorkerServiceSchema = z.object({
   price: z.number().positive("Price must be positive").optional(),
 });
 
-export const CreatePortfolioSchema = z.object({
-  title: z.string().min(2, "Title must be at least 2 characters"),
-  description: z.string().optional(),
-  imageUrl: z.string().url({ message: "Image URL must be a valid URL" }),
-  imagePublicId: z.string().min(1, "Image public ID is required").optional(),
-});
+export const CreatePortfolioSchema = z
+  .object({
+    title: z.string().min(2, "Title must be at least 2 characters"),
+    description: z.string().optional(),
+    imageUrl: z
+      .string()
+      .url({ message: "Image URL must be a valid URL" })
+      .optional(),
+    imageUrls: z
+      .array(z.string().url({ message: "Each image URL must be valid" }))
+      .optional(),
+    images: z
+      .array(z.string().url({ message: "Each image URL must be valid" }))
+      .optional(),
+    imagePublicId: z.string().min(1, "Image public ID is required").optional(),
+  })
+  .refine(
+    (data) =>
+      Boolean(
+        data.imageUrl ||
+        (data.imageUrls && data.imageUrls.length > 0) ||
+        (data.images && data.images.length > 0),
+      ),
+    {
+      message: "An image URL is required",
+      path: ["imageUrl"],
+    },
+  );
 
 export const CreateCertificateSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
@@ -97,6 +119,12 @@ export const CreateCertificateSchema = z.object({
     .string()
     .refine((val) => !Number.isNaN(Date.parse(val)), {
       message: "Issued date must be a valid ISO 8601 date string",
+    })
+    .optional(),
+  issueDate: z
+    .string()
+    .refine((val) => !Number.isNaN(Date.parse(val)), {
+      message: "Issue date must be a valid ISO 8601 date string",
     })
     .optional(),
 });

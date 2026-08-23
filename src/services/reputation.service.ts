@@ -73,7 +73,24 @@ export const getWorkerReputation = async (workerId: string) => {
 
   const repeatCustomers = repeatCustomerGroups.length;
 
-  // 4. Derive Dynamic Badges
+  // 4. Total Verified Earnings
+  const paidPayments = await prisma.payment.aggregate({
+    where: {
+      job: {
+        assignedWorkerId: workerId,
+      },
+      status: "PAID",
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
+  const totalEarnings = paidPayments._sum.amount
+    ? Number(paidPayments._sum.amount)
+    : 0;
+
+  // 5. Derive Dynamic Badges
   const ratingAvgNum = Number(worker.ratingAvg);
   const badges: string[] = [];
 
@@ -96,6 +113,7 @@ export const getWorkerReputation = async (workerId: string) => {
       completedJobs,
       jobCompletionRate,
       repeatCustomers,
+      totalEarnings,
     },
     badges,
   };

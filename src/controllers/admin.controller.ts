@@ -30,7 +30,11 @@ export const updateUserRole = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = String(req.params.id);
     const body = req.body as UpdateUserRoleDto;
-    const updatedUser = await adminService.updateUserRole(userId, body.role);
+    const updatedUser = await adminService.updateUserRole(
+      req.user!.id,
+      userId,
+      body.role,
+    );
     sendSuccess(res, updatedUser);
   },
 );

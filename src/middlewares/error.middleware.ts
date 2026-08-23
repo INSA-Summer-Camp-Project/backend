@@ -54,11 +54,16 @@ export class ConflictError extends AppError {
 
 export const errorHandler = (
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): void => {
+  const path = req.originalUrl || req.url;
+
   if (err instanceof AppError) {
+    console.warn(
+      `⚠️ [HTTP ${err.statusCode}] [${err.code}] ${req.method} ${path} - ${err.message}`,
+    );
     res.status(err.statusCode).json({
       success: false,
       error: {
@@ -72,9 +77,14 @@ export const errorHandler = (
   if (err instanceof ZodError) {
     const fields: Record<string, string> = {};
     err.issues.forEach((issue) => {
-      const path = issue.path.join(".");
-      if (path) fields[path] = issue.message;
+      const pathKey = issue.path.join(".");
+      if (pathKey) fields[pathKey] = issue.message;
     });
+
+    console.warn(
+      `⚠️ [HTTP 400] [VALIDATION_ERROR] ${req.method} ${path} - Validation failed:`,
+      fields,
+    );
 
     res.status(400).json({
       success: false,
@@ -87,7 +97,7 @@ export const errorHandler = (
     return;
   }
 
-  console.error("❌ Express Unhandled Error:", err);
+  console.error(`❌ [HTTP 500] [INTERNAL_ERROR] ${req.method} ${path}:`, err);
   res.status(500).json({
     success: false,
     error: {

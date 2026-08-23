@@ -104,7 +104,10 @@ const getWorkerOrThrow = async (userId: string) => {
 /**
  * Retrieves a paginated list of worker profiles based on search and filter parameters.
  */
-export const getWorkers = async (query: WorkerQueryDto) => {
+export const getWorkers = async (
+  query: WorkerQueryDto,
+  currentUserId?: string,
+) => {
   const {
     categoryId,
     search,
@@ -117,6 +120,12 @@ export const getWorkers = async (query: WorkerQueryDto) => {
   } = query;
 
   const AND: Prisma.WorkerWhereInput[] = [];
+
+  if (currentUserId) {
+    AND.push({
+      userId: { not: currentUserId },
+    });
+  }
 
   if (categoryId) {
     AND.push({
@@ -159,6 +168,9 @@ export const getWorkers = async (query: WorkerQueryDto) => {
   let orderBy: Prisma.WorkerOrderByWithRelationInput[];
 
   switch (sortBy) {
+    case "jobs":
+      orderBy = [{ assignedJobs: { _count: "desc" } }, { ratingAvg: "desc" }];
+      break;
     case "newest":
       orderBy = [{ createdAt: "desc" }];
       break;
@@ -312,7 +324,7 @@ export const createService = async (
     data: {
       providerId: worker.id,
       categoryId: data.categoryId,
-      name: data.name,
+      name: data.name || category.name,
       ...(data.description !== undefined && { description: data.description }),
       ...(data.price !== undefined && { price: data.price }),
     },
@@ -393,15 +405,19 @@ export const createPortfolio = async (
 ) => {
   const worker = await getWorkerOrThrow(userId);
 
+  const resolvedImageUrl: string =
+    data.imageUrl ||
+    (data.imageUrls && data.imageUrls.length > 0 ? data.imageUrls[0] : "") ||
+    (data.images && data.images.length > 0 ? data.images[0] : "") ||
+    "";
+
   return prisma.portfolio.create({
     data: {
       workerId: worker.id,
       title: data.title,
-      imageUrl: data.imageUrl,
-      ...(data.imagePublicId !== undefined && {
-        imagePublicId: data.imagePublicId,
-      }),
-      ...(data.description !== undefined && { description: data.description }),
+      imageUrl: resolvedImageUrl,
+      ...(data.imagePublicId ? { imagePublicId: data.imagePublicId } : {}),
+      ...(data.description ? { description: data.description } : {}),
     },
   });
 };
@@ -437,6 +453,8 @@ export const createCertificate = async (
 ) => {
   const worker = await getWorkerOrThrow(userId);
 
+  const dateStr = data.issuedDate || data.issueDate;
+
   return prisma.certificate.create({
     data: {
       workerId: worker.id,
@@ -445,7 +463,7 @@ export const createCertificate = async (
       ...(data.filePublicId !== undefined && {
         filePublicId: data.filePublicId,
       }),
-      issuedDate: data.issuedDate ? new Date(data.issuedDate) : null,
+      issuedDate: dateStr ? new Date(dateStr) : null,
     },
   });
 };

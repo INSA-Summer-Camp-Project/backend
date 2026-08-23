@@ -38,11 +38,15 @@ const listByScope = async (
   };
 };
 
-export const listCustomerNotifications = (userId: string, query: NotificationQueryDto) =>
-  listByScope({ customerProfile: { userId } }, query);
+export const listCustomerNotifications = (
+  userId: string,
+  query: NotificationQueryDto,
+) => listByScope({ customerProfile: { userId } }, query);
 
-export const listWorkerNotifications = (userId: string, query: NotificationQueryDto) =>
-  listByScope({ worker: { userId } }, query);
+export const listWorkerNotifications = (
+  userId: string,
+  query: NotificationQueryDto,
+) => listByScope({ worker: { userId } }, query);
 
 export const getCustomerUnreadCount = async (userId: string) => {
   const count = await prisma.notification.count({

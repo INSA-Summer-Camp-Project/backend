@@ -1,5 +1,4 @@
-import { ActiveRole } from "@prisma/client";
-
+import type { Prisma } from "@prisma/client";
 import type { CompleteOnboardingDto } from "@/dtos/onboarding.dto";
 import { NotFoundError } from "@/middlewares/error.middleware";
 import { prisma } from "@/lib/prisma";
@@ -80,14 +79,20 @@ export const completeOnboarding = async (
   }
 
   return prisma.$transaction(async (tx) => {
-    const userUpdateData: Record<string, any> = {};
+    const userUpdateData: Prisma.UserUpdateInput = {
+      isOnboarded: true,
+      lastActiveRole: dto.activeRole,
+    };
 
-    if (dto.firstName || dto.lastName) {
-      const nameParts = [];
+    if (dto.name) {
+      userUpdateData.name = dto.name;
+    } else if (dto.firstName || dto.lastName) {
+      const nameParts: string[] = [];
       if (dto.firstName) nameParts.push(dto.firstName);
       if (dto.lastName) nameParts.push(dto.lastName);
       if (nameParts.length > 0) userUpdateData.name = nameParts.join(" ");
     }
+
     if (dto.birthdate) {
       userUpdateData.birthdate = new Date(dto.birthdate);
     }
@@ -95,30 +100,25 @@ export const completeOnboarding = async (
       userUpdateData.gender = dto.gender;
     }
 
-    userUpdateData.isOnboarded = true;
-    userUpdateData.lastActiveRole = dto.activeRole;
-
     await tx.user.update({
       where: { id: userId },
       data: userUpdateData,
     });
 
-    if (dto.activeRole === ActiveRole.WORKER) {
-      if (!user.worker) {
-        await tx.worker.create({
-          data: {
-            userId: userId,
-            experienceYears: 0,
-            ratingAvg: 0.0,
-          },
-        });
-      }
-    } else if (dto.activeRole === ActiveRole.CUSTOMER) {
-      if (!user.customerProfile) {
-        await tx.customerProfile.create({
-          data: { userId: userId },
-        });
-      }
+    if (!user.customerProfile) {
+      await tx.customerProfile.create({
+        data: { userId },
+      });
+    }
+
+    if (!user.worker) {
+      await tx.worker.create({
+        data: {
+          userId,
+          experienceYears: 0,
+          ratingAvg: 0.0,
+        },
+      });
     }
 
     return tx.user.findUnique({

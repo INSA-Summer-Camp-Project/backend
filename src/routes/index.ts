@@ -14,6 +14,7 @@ import notificationRouter from "@/routes/notification.routes";
 import onboardingRouter from "@/routes/onboarding.routes";
 import reportRouter from "@/routes/report.routes";
 import adminRouter from "@/routes/admin.routes";
+import portfolioRouter from "@/routes/portfolio.routes";
 
 const router: Router = Router();
 
@@ -23,6 +24,7 @@ router.use("/onboarding", onboardingRouter);
 router.use("/categories", categoryRouter);
 router.use("/profiles", profileRouter);
 router.use("/workers", workerRouter);
+router.use("/portfolios", portfolioRouter);
 router.use("/customers", customerRouter);
 router.use("/search", searchRouter);
 router.use("/jobs", jobRouter);

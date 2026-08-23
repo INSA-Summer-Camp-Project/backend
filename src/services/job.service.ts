@@ -1,4 +1,9 @@
-import { Prisma, type JobSource, type JobStatus } from "@prisma/client";
+import {
+  Prisma,
+  PaymentStatus,
+  type JobSource,
+  type JobStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   NotFoundError,
@@ -219,9 +224,18 @@ export const getPublicJobs = async (query: JobQueryDto) => {
 // ---------------------------------------------------------------------------
 export const getMyJobs = async (
   userId: string,
-  lastActiveRole: "CUSTOMER" | "WORKER" | null,
+  lastActiveRole?: "CUSTOMER" | "WORKER" | null,
 ) => {
-  if (lastActiveRole === "CUSTOMER") {
+  let role = lastActiveRole;
+  if (!role) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastActiveRole: true },
+    });
+    role = user?.lastActiveRole ?? "CUSTOMER";
+  }
+
+  if (role === "CUSTOMER") {
     const profile = await getCustomerProfileOrThrow(userId);
     return prisma.job.findMany({
       where: { customerId: profile.id },
@@ -244,6 +258,10 @@ export const getMyJobs = async (
     include: {
       category: { select: categorySelect },
       customer: { select: customerPublicSelect },
+      payments: {
+        where: { status: "PAID" },
+        select: { id: true, amount: true, status: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -455,6 +473,21 @@ export const updateJobStatus = async (
     throw new BadRequestError(
       "IN_PROGRESS transition is handled by the bid acceptance or direct-respond endpoints",
     );
+  }
+
+  if (data.status === "COMPLETED") {
+    const paidPayment = await prisma.payment.findFirst({
+      where: {
+        jobId,
+        status: PaymentStatus.PAID,
+      },
+    });
+
+    if (!paidPayment) {
+      throw new BadRequestError(
+        "Cannot complete job without a verified payment in escrow",
+      );
+    }
   }
 
   const updatedJob = await prisma.job.update({

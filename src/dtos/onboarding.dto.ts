@@ -2,6 +2,7 @@ import { ActiveRole } from "@prisma/client";
 import { z } from "zod";
 
 export const CompleteOnboardingDtoSchema = z.object({
+  name: z.string().min(1).optional(),
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   birthdate: z.string().optional(),

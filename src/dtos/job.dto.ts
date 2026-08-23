@@ -45,7 +45,7 @@ export const DirectRespondDtoSchema = z.object({
 
 /** Status transition patch (customer/assigned-worker) */
 export const UpdateJobStatusDtoSchema = z.object({
-  status: z.enum(["IN_PROGRESS", "COMPLETED", "CANCELLED"]),
+  status: z.enum(["COMPLETED", "CANCELLED"]),
 });
 
 export type CreateJobDto = z.infer<typeof CreateJobDtoSchema>;
