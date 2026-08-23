@@ -119,7 +119,7 @@ async function main() {
     catElectrical,
     catCarpentry,
     catCleaning,
-    _catAppliance,
+    catAppliance,
     catTutoring,
     catTech,
     catPainting,
@@ -505,6 +505,13 @@ async function main() {
                   "Router configuration, cat6 cabling, POE switch setup, and IP camera cloud integration.",
                 price: 1500.0,
               },
+              {
+                categoryId: catTech.id,
+                name: "Laptop Motherboard & Display Repair",
+                description:
+                  "Micro-soldering, component diagnosis, and genuine screen replacement.",
+                price: 800.0,
+              },
             ],
           },
         },
@@ -527,6 +534,8 @@ async function main() {
       isOnboarded: true,
       birthdate: new Date("1995-10-30"),
       gender: "MALE",
+      avatarUrl:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
       customerProfile: {
         create: {
           bio: "Parent in Summit looking for music and language tutors.",
@@ -540,6 +549,8 @@ async function main() {
           paymentRate: 300.0,
           availability: "Evenings & Weekends",
           ratingAvg: 5.0,
+          profilePhoto:
+            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
           services: {
             create: [
               {
@@ -548,6 +559,13 @@ async function main() {
                 description:
                   "Comprehensive concept breakdown, past exam paper drills, and weekly progress assessments.",
                 price: 1200.0,
+              },
+              {
+                categoryId: catTutoring.id,
+                name: "Grade 12 Ministry & EUEE Exam Prep",
+                description:
+                  "Targeted practice drills and past exam walkthroughs.",
+                price: 950.0,
               },
             ],
           },
@@ -571,6 +589,8 @@ async function main() {
       isOnboarded: true,
       birthdate: new Date("1984-01-11"),
       gender: "MALE",
+      avatarUrl:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
       customerProfile: {
         create: {
           bio: "Customer in Ayat seeking painting contracts.",
@@ -582,8 +602,10 @@ async function main() {
           bio: "General repair worker offering plumbing and electrical services around Piassa.",
           experienceYears: 2,
           paymentRate: 150.0,
-          availability: "Irregular",
+          availability: "Irregular",  
           ratingAvg: 1.2, // Extreme low rating edge case
+          profilePhoto:
+            "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
           paymentAccount: {
             create: {
               provider: PaymentProvider.CHAPA,
@@ -607,7 +629,7 @@ async function main() {
     include: { worker: true, customerProfile: true },
   });
 
-  // --- 3.9 "Ghost Worker" (0 Jobs, 0 Portfolios, 0 Certificates, Rating 0.0) ---
+  // --- 3.9 Painting & Finishing Pro (Genet Alemu) ---
   const _workerGenet = await prisma.user.create({
     data: {
       name: "Genet Alemu",
@@ -621,19 +643,125 @@ async function main() {
       isOnboarded: true,
       birthdate: new Date("1998-04-03"),
       gender: "FEMALE",
-      // Missing avatar and customer bio
+      avatarUrl:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
       customerProfile: {
         create: {
-          ratingAvg: 0.0,
+          bio: "Looking for local cleaning and carpentry services in Bole Bulbula.",
+          ratingAvg: 5.0,
         },
       },
       worker: {
         create: {
-          bio: "Recently onboarded painting and wallpaper specialist ready for new projects.",
-          experienceYears: 1,
-          paymentRate: 200.0,
-          availability: "Full-Time",
-          ratingAvg: 0.0, // Ghost worker
+          bio: "Experienced interior and exterior decorative painter specializing in silk emulsion, stucco textures, and precision gypsum cornice finishes.",
+          experienceYears: 4,
+          paymentRate: 280.0,
+          availability: "Full-Time (Mon - Sat)",
+          ratingAvg: 4.85,
+          profilePhoto:
+            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+          services: {
+            create: [
+              {
+                categoryId: catPainting.id,
+                name: "Interior Silk & Exterior Stucco Wall Painting",
+                description:
+                  "Surface preparation, undercoat priming, and flawless two-coat finish.",
+                price: 450.0,
+              },
+              {
+                categoryId: catPainting.id,
+                name: "Gypsum Cornice Detailing & Textured Accent Walls",
+                description:
+                  "Ceiling cornice painting and textured decorative accent walls.",
+                price: 650.0,
+              },
+            ],
+          },
+          portfolios: {
+            create: [
+              {
+                title: "Modern Emerald Accent Wall & Silk Finish in Summit",
+                description:
+                  "Applied velvet-touch textured emerald accent wall with crisp white trim.",
+                imageUrl:
+                  "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&auto=format&fit=crop&q=80",
+              },
+            ],
+          },
+        },
+      },
+    },
+    include: { worker: true, customerProfile: true },
+  });
+
+  // --- 3.10 Master Appliance & Refrigerator Specialist (Kassahun Melaku) ---
+  const _workerKassahun = await prisma.user.create({
+    data: {
+      name: "Kassahun Melaku",
+      email: "kassahun.appliance@servicehub.et",
+      phone: "+251911998877",
+      telegramId: "tg_kassahun_m",
+      systemRole: SystemRole.USER,
+      role: Role.WORKER,
+      status: UserStatus.ACTIVE,
+      lastActiveRole: ActiveRole.WORKER,
+      isOnboarded: true,
+      birthdate: new Date("1988-06-15"),
+      gender: "MALE",
+      avatarUrl:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&auto=format&fit=crop&q=80",
+      customerProfile: {
+        create: {
+          bio: "Commercial kitchen manager hiring specialists.",
+          ratingAvg: 4.9,
+        },
+      },
+      worker: {
+        create: {
+          bio: "Certified refrigeration and kitchen appliance expert with 12 years repairing domestic & industrial cold rooms, washing machines, and electric ovens.",
+          experienceYears: 12,
+          paymentRate: 400.0,
+          availability: "Full-Time (Mon - Sun)",
+          ratingAvg: 4.95,
+          profilePhoto:
+            "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&auto=format&fit=crop&q=80",
+          paymentAccount: {
+            create: {
+              provider: PaymentProvider.CHAPA,
+              providerAccountId: "chapa_acc_kassahun_8811",
+              status: PaymentAccountStatus.ACTIVE,
+            },
+          },
+          services: {
+            create: [
+              {
+                categoryId: catAppliance.id,
+                name: "Commercial & Domestic Refrigerator Repair",
+                description:
+                  "Compressor replacement, refrigerant leak troubleshooting, and electronic controller fixes.",
+                price: 850.0,
+              },
+              {
+                categoryId: catAppliance.id,
+                name: "Automatic Washing Machine & Dryer Overhaul",
+                description:
+                  "Drum bearing replacement, motor repair, inlet valve, and drainage pump servicing.",
+                price: 600.0,
+              },
+            ],
+          },
+          portfolios: {
+            create: [
+              {
+                title: "Industrial Bakery Walk-In Chiller Overhaul",
+                description:
+                  "Repaired dual-compressor cooling circuit and replaced digital temperature control board.",
+                imageUrl:
+                  "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&auto=format&fit=crop&q=80",
+              },
+            ],
+          },
         },
       },
     },
@@ -768,7 +896,7 @@ async function main() {
   });
 
   console.log(
-    `✅ 14 Users created across ACTIVE, PENDING, SUSPENDED states, Admin, Pro, and Ghost profiles.`,
+    `✅ 15 Users created across ACTIVE, PENDING, SUSPENDED states, Admin, Pro, and Ghost profiles.`,
   );
 
   // =========================================================================
