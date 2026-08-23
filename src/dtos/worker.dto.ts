@@ -82,12 +82,34 @@ export const UpdateWorkerServiceSchema = z.object({
   price: z.number().positive("Price must be positive").optional(),
 });
 
-export const CreatePortfolioSchema = z.object({
-  title: z.string().min(2, "Title must be at least 2 characters"),
-  description: z.string().optional(),
-  imageUrl: z.string().url({ message: "Image URL must be a valid URL" }),
-  imagePublicId: z.string().min(1, "Image public ID is required").optional(),
-});
+export const CreatePortfolioSchema = z
+  .object({
+    title: z.string().min(2, "Title must be at least 2 characters"),
+    description: z.string().optional(),
+    imageUrl: z
+      .string()
+      .url({ message: "Image URL must be a valid URL" })
+      .optional(),
+    imageUrls: z
+      .array(z.string().url({ message: "Each image URL must be valid" }))
+      .optional(),
+    images: z
+      .array(z.string().url({ message: "Each image URL must be valid" }))
+      .optional(),
+    imagePublicId: z.string().min(1, "Image public ID is required").optional(),
+  })
+  .refine(
+    (data) =>
+      Boolean(
+        data.imageUrl ||
+        (data.imageUrls && data.imageUrls.length > 0) ||
+        (data.images && data.images.length > 0),
+      ),
+    {
+      message: "An image URL is required",
+      path: ["imageUrl"],
+    },
+  );
 
 export const CreateCertificateSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),

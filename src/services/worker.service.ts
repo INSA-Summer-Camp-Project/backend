@@ -396,15 +396,19 @@ export const createPortfolio = async (
 ) => {
   const worker = await getWorkerOrThrow(userId);
 
+  const resolvedImageUrl: string =
+    data.imageUrl ||
+    (data.imageUrls && data.imageUrls.length > 0 ? data.imageUrls[0] : "") ||
+    (data.images && data.images.length > 0 ? data.images[0] : "") ||
+    "";
+
   return prisma.portfolio.create({
     data: {
       workerId: worker.id,
       title: data.title,
-      imageUrl: data.imageUrl,
-      ...(data.imagePublicId !== undefined && {
-        imagePublicId: data.imagePublicId,
-      }),
-      ...(data.description !== undefined && { description: data.description }),
+      imageUrl: resolvedImageUrl,
+      ...(data.imagePublicId ? { imagePublicId: data.imagePublicId } : {}),
+      ...(data.description ? { description: data.description } : {}),
     },
   });
 };

@@ -219,6 +219,35 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
       expect(delRes.status).toBe(200);
     });
 
+    it("POST /api/v1/portfolios should create portfolio item at top-level endpoint with imageUrls array", async () => {
+      const createRes = await request(app)
+        .post("/api/v1/portfolios")
+        .set("Authorization", `Bearer ${workerAToken}`)
+        .set("Origin", "http://127.0.0.1:3000")
+        .send({
+          title: "Kitchen Remodel",
+          description: "Installed custom cabinetry",
+          imageUrls: ["https://example.com/images/kitchen1.jpg"],
+        });
+
+      expect(createRes.status).toBe(201);
+      expect(createRes.body.success).toBe(true);
+      expect(createRes.body.data.title).toBe("Kitchen Remodel");
+      expect(createRes.body.data.imageUrl).toBe(
+        "https://example.com/images/kitchen1.jpg",
+      );
+      expect(createRes.headers["access-control-allow-origin"]).toBe(
+        "http://127.0.0.1:3000",
+      );
+
+      const portfolioId = createRes.body.data.id;
+      const delRes = await request(app)
+        .delete(`/api/v1/portfolios/${portfolioId}`)
+        .set("Authorization", `Bearer ${workerAToken}`);
+
+      expect(delRes.status).toBe(200);
+    });
+
     it("POST & DELETE /api/v1/workers/me/certificates should manage certificates", async () => {
       const createRes = await request(app)
         .post("/api/v1/workers/me/certificates")

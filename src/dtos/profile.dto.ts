@@ -18,9 +18,9 @@ export type CreateWorkerProfileDto = z.infer<
 
 export const CreatePortfolioItemDtoSchema = z.object({
   title: z.string().min(2, "Title is required"),
-  description: z.string().min(5, "Description is required"),
+  description: z.string().optional(),
   imageUrl: z.string().url("Invalid image URL"),
-  imagePublicId: z.string().min(1, "Image public ID is required"),
+  imagePublicId: z.string().optional(),
 });
 
 export type CreatePortfolioItemDto = z.infer<
@@ -30,7 +30,7 @@ export type CreatePortfolioItemDto = z.infer<
 export const CreateCertificateDtoSchema = z.object({
   title: z.string().min(2, "Title is required"),
   fileUrl: z.string().url("Invalid file URL"),
-  filePublicId: z.string().min(1, "File public ID is required"),
+  filePublicId: z.string().optional(),
 });
 
 export type CreateCertificateDto = z.infer<typeof CreateCertificateDtoSchema>;

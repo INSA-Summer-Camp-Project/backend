@@ -118,11 +118,9 @@ export const addPortfolioItem = async (
     data: {
       workerId: worker.id,
       title: dto.title,
-      description: dto.description,
       imageUrl: dto.imageUrl,
-      ...(dto.imagePublicId !== undefined && {
-        imagePublicId: dto.imagePublicId,
-      }),
+      ...(dto.description ? { description: dto.description } : {}),
+      ...(dto.imagePublicId ? { imagePublicId: dto.imagePublicId } : {}),
     },
   });
 };
