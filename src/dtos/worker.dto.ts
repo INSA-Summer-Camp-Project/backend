@@ -67,7 +67,7 @@ export const UpdateWorkerProfileSchema = z.object({
 
 export const CreateWorkerServiceSchema = z.object({
   categoryId: z.string().uuid({ message: "Invalid category ID format" }),
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters").optional(),
   description: z.string().optional(),
   price: z.number().positive("Price must be positive").optional(),
 });
@@ -97,6 +97,12 @@ export const CreateCertificateSchema = z.object({
     .string()
     .refine((val) => !Number.isNaN(Date.parse(val)), {
       message: "Issued date must be a valid ISO 8601 date string",
+    })
+    .optional(),
+  issueDate: z
+    .string()
+    .refine((val) => !Number.isNaN(Date.parse(val)), {
+      message: "Issue date must be a valid ISO 8601 date string",
     })
     .optional(),
 });

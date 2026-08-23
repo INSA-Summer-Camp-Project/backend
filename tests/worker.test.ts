@@ -110,6 +110,20 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
       expect(res.body.data.category.id).toBe(categoryId);
     });
 
+    it("POST /api/v1/workers/me/services should default name to category name when name is omitted", async () => {
+      const res = await request(app)
+        .post("/api/v1/workers/me/services")
+        .set("Authorization", `Bearer ${workerAToken}`)
+        .send({
+          categoryId,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.name).toBe("Plumbing");
+      expect(res.body.data.category.id).toBe(categoryId);
+    });
+
     it("PUT /api/v1/workers/me/services/:serviceId should update owned service", async () => {
       const serviceRes = await request(app)
         .post("/api/v1/workers/me/services")
@@ -232,6 +246,22 @@ describe("Worker Profile & Catalog Integration Tests (/api/v1/workers)", () => {
         .set("Authorization", `Bearer ${workerAToken}`);
 
       expect(delRes.status).toBe(200);
+    });
+
+    it("POST /api/v1/workers/me/certificates should accept issueDate alias", async () => {
+      const createRes = await request(app)
+        .post("/api/v1/workers/me/certificates")
+        .set("Authorization", `Bearer ${workerAToken}`)
+        .send({
+          title: "Electrician Certification",
+          fileUrl: "https://example.com/files/cert.pdf",
+          issueDate: "2024-01-10",
+        });
+
+      expect(createRes.status).toBe(201);
+      expect(createRes.body.success).toBe(true);
+      expect(createRes.body.data.title).toBe("Electrician Certification");
+      expect(createRes.body.data.issuedDate).toBeDefined();
     });
   });
 

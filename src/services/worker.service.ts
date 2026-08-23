@@ -315,7 +315,7 @@ export const createService = async (
     data: {
       providerId: worker.id,
       categoryId: data.categoryId,
-      name: data.name,
+      name: data.name || category.name,
       ...(data.description !== undefined && { description: data.description }),
       ...(data.price !== undefined && { price: data.price }),
     },
@@ -440,6 +440,8 @@ export const createCertificate = async (
 ) => {
   const worker = await getWorkerOrThrow(userId);
 
+  const dateStr = data.issuedDate || data.issueDate;
+
   return prisma.certificate.create({
     data: {
       workerId: worker.id,
@@ -448,7 +450,7 @@ export const createCertificate = async (
       ...(data.filePublicId !== undefined && {
         filePublicId: data.filePublicId,
       }),
-      issuedDate: data.issuedDate ? new Date(data.issuedDate) : null,
+      issuedDate: dateStr ? new Date(dateStr) : null,
     },
   });
 };
