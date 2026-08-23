@@ -104,7 +104,10 @@ const getWorkerOrThrow = async (userId: string) => {
 /**
  * Retrieves a paginated list of worker profiles based on search and filter parameters.
  */
-export const getWorkers = async (query: WorkerQueryDto) => {
+export const getWorkers = async (
+  query: WorkerQueryDto,
+  currentUserId?: string,
+) => {
   const {
     categoryId,
     search,
@@ -117,6 +120,12 @@ export const getWorkers = async (query: WorkerQueryDto) => {
   } = query;
 
   const AND: Prisma.WorkerWhereInput[] = [];
+
+  if (currentUserId) {
+    AND.push({
+      userId: { not: currentUserId },
+    });
+  }
 
   if (categoryId) {
     AND.push({

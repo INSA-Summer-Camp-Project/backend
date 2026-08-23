@@ -602,7 +602,7 @@ async function main() {
           bio: "General repair worker offering plumbing and electrical services around Piassa.",
           experienceYears: 2,
           paymentRate: 150.0,
-          availability: "Irregular",  
+          availability: "Irregular",
           ratingAvg: 1.2, // Extreme low rating edge case
           profilePhoto:
             "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
