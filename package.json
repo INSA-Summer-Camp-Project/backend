@@ -13,6 +13,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:seed": "tsx prisma/seed.ts",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
     "full-check": "pnpm format:check && tsc --noEmit && pnpm lint && pnpm test",
     "check": "pnpm format:check && tsc --noEmit && pnpm lint",
     "pre-check": "echo everything is not working && exit 0",

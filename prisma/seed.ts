@@ -29,6 +29,20 @@ async function main() {
   // =========================================================================
   // 1. IDEMPOTENT CLEANUP (Strict Reverse-Relational Dependency Order)
   // =========================================================================
+  const existingUsersCount = await prisma.user.count();
+  const shouldForceClean =
+    process.env.FORCE_CLEAN === "true" ||
+    process.env.FORCE_SEED === "true" ||
+    process.argv.includes("--force") ||
+    process.argv.includes("--clean");
+
+  if (existingUsersCount > 0 && !shouldForceClean) {
+    console.log(
+      `ℹ️ Database already contains ${existingUsersCount} user(s). Skipping destructive wipe to preserve records. Pass --clean or FORCE_CLEAN=true to re-seed.`,
+    );
+    return;
+  }
+
   console.log("🧹 [1/8] Clearing existing data in reverse-relational order...");
   await prisma.$transaction([
     prisma.report.deleteMany(),
